@@ -98,7 +98,7 @@
 	}
 
 	function poll() {
-		svc('status', {}, render, function () {});
+		svc('status', {}, function(s) { render(s); if (logsVisible) { var w = document.getElementById('logwrap'); var lock = w.scrollHeight - w.clientHeight <= w.scrollTop + 20; svc('getLogs', {lines: 300}, function(r) { document.getElementById('logs').textContent = r.log; if(lock || w.scrollTop === 0) w.scrollTop = w.scrollHeight; }); } }, function () {});
 	}
 
 	function startPolling() {
