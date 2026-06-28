@@ -1,0 +1,14 @@
+# Build output
+dist/
+*.ipk
+
+# Dependencies
+node_modules/
+
+# Generated icons (recreated by scripts/make-icons.ps1)
+appinfo/icon.png
+appinfo/largeIcon.png
+
+# Misc
+*.log
+.DS_Store

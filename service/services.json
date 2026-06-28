@@ -1,0 +1,19 @@
+{
+  "id": "com.prowlarr.app.service",
+  "description": "Prowlarr control service - manages the Prowlarr server process",
+  "services": [
+    {
+      "name": "com.prowlarr.app.service",
+      "description": "Downloads, starts, stops and monitors the Prowlarr server",
+      "commands": [
+        { "name": "status",  "description": "Return current Prowlarr status" },
+        { "name": "start",   "description": "Start Prowlarr (downloads it on first run)" },
+        { "name": "stop",    "description": "Stop Prowlarr" },
+        { "name": "restart", "description": "Restart Prowlarr" },
+        { "name": "install", "description": "Download / re-download the latest Prowlarr" },
+        { "name": "update",  "description": "Update Prowlarr to the latest release" },
+        { "name": "getLogs", "description": "Return the tail of the Prowlarr log" }
+      ]
+    }
+  ]
+}

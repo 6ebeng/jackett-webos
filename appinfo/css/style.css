@@ -1,0 +1,90 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #14181d;
+  color: #e8eef3;
+  font-family: "LG Smart UI", Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 48px 64px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+header .logo { width: 64px; height: 64px; border-radius: 12px; }
+header h1 { font-size: 44px; font-weight: 700; letter-spacing: 0.5px; }
+
+.badge {
+  margin-left: auto;
+  font-size: 24px;
+  padding: 8px 22px;
+  border-radius: 999px;
+}
+.badge.running { background: #1f7a3d; color: #d6ffe2; }
+.badge.stopped { background: #3a3f46; color: #c7ced6; }
+.badge.busy    { background: #8a6d1f; color: #fff3d6; }
+.badge.error   { background: #8a2727; color: #ffd6d6; }
+
+main { flex: 1; display: flex; flex-direction: column; gap: 28px; min-height: 0; }
+
+.card {
+  background: #1d2228;
+  border: 1px solid #2a313a;
+  border-radius: 16px;
+  padding: 24px 32px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  font-size: 26px;
+  border-bottom: 1px solid #232a32;
+}
+.row:last-child { border-bottom: none; }
+.row .k { color: #8c97a3; }
+.row .v { color: #e8eef3; font-weight: 600; max-width: 70%; text-align: right; word-break: break-all; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 20px; }
+
+.btn {
+  font-size: 30px;
+  font-weight: 600;
+  padding: 20px 42px;
+  border-radius: 14px;
+  border: 3px solid transparent;
+  background: #2a313a;
+  color: #e8eef3;
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.08s ease, border-color 0.08s ease;
+}
+.btn.primary { background: #35c5f0; color: #06222c; font-weight: 700; }
+.btn:focus { border-color: #35c5f0; transform: scale(1.05); }
+.btn.primary:focus { border-color: #ffffff; }
+
+#logwrap { flex: 1; overflow: auto; min-height: 0; padding: 18px; }
+#logs {
+  font-family: "Courier New", monospace;
+  font-size: 22px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  color: #b9c4cf;
+}
+
+footer { margin-top: 24px; min-height: 32px; font-size: 22px; color: #8c97a3; }
+footer b { color: #cdd6df; }
+
+.hidden { display: none !important; }

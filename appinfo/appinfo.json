@@ -1,0 +1,16 @@
+{
+  "id": "com.prowlarr.app",
+  "version": "1.0.4",
+  "vendor": "Homebrew",
+  "type": "web",
+  "main": "index.html",
+  "title": "Prowlarr",
+  "appDescription": "Prowlarr indexer manager running inside your TV",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "iconColor": "#35c5f0",
+  "bgColor": "#14181d",
+  "transparent": true,
+  "disableBackHistoryAPI": true,
+  "handlesRelaunch": true
+}
