@@ -110,6 +110,18 @@
 		pollTimer = setInterval(poll, POLL_MS);
 	}
 
+	function checkUpdate() {
+		svc('checkUpdate', {}, function (r) {
+			var avail = r && r.updateAvailable;
+			$('updatebadge').className = 'pill' + (avail ? '' : ' hidden');
+			$('btnUpdate').className = 'btn' + (avail ? ' attention' : '');
+			if (avail) {
+				$('btnUpdate').textContent = 'Update to ' + r.latest;
+				msg('A new Prowlarr version (<b>' + r.latest + '</b>) is available. Press <b>Update</b> to install.');
+			}
+		});
+	}
+
 	function toggleLogs() {
 		logsVisible = !logsVisible;
 		$('logwrap').className = 'card' + (logsVisible ? '' : ' hidden');
@@ -137,6 +149,7 @@
 		$('btnUpdate').onclick = function () {
 			msg('Updating to the latest Prowlarr release…');
 			svc('update', {}, poll);
+			setTimeout(checkUpdate, 60000);
 		};
 		$('btnAutostart').onclick = function () {
 			if (autostartOn) {
@@ -187,5 +200,7 @@
 		wire();
 		setupNav();
 		startPolling();
+		checkUpdate();
+		setInterval(checkUpdate, 30 * 60 * 1000);
 	});
 })();

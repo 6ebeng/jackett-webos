@@ -54,6 +54,7 @@ TGZ="$DATA_DIR/prowlarr.tar.gz"
 PART="$DATA_DIR/prowlarr.tar.gz.part"
 TOTALFILE="$DATA_DIR/total"
 ARCHFILE="$DATA_DIR/arch"
+LATESTFILE="$DATA_DIR/latest"
 mkdir -p "$DATA_DIR" "$DATA_SUB" "$DATA_DIR/tmp" 2>/dev/null
 
 set_state() { echo "$1" >"$STATEFILE" 2>/dev/null; }
@@ -117,6 +118,22 @@ download() {
         node "$SCRIPT_DIR/download.js" "$_u" "$_d" && return 0
     fi
     return 1
+}
+
+# Fetch the latest release tag from GitHub and cache it. Returns the cached
+# value immediately if checked within the last hour, so polling stays cheap.
+do_latest() {
+    if [ -f "$LATESTFILE" ]; then
+        _age=$(( $(date +%s) - $(date -r "$LATESTFILE" +%s 2>/dev/null || echo 0) ))
+        if [ "$_age" -lt 3600 ]; then cat "$LATESTFILE"; return 0; fi
+    fi
+    _j="$DATA_DIR/release-check.json"
+    if download "$API_URL" "$_j"; then
+        _v=$(grep -o '"tag_name"[ ]*:[ ]*"[^"]*"' "$_j" | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')
+        rm -f "$_j" 2>/dev/null
+        if [ -n "$_v" ]; then echo "$_v" >"$LATESTFILE"; echo "$_v"; return 0; fi
+    fi
+    cat "$LATESTFILE" 2>/dev/null
 }
 
 is_running() {
@@ -300,12 +317,13 @@ case "${1:-}" in
     status)   do_status ;;
     logs)     tail -n "${2:-200}" "$LOG" 2>/dev/null ;;
     datadir)  echo "$DATA_DIR" ;;
+    latest)   do_latest ;;
     enable-autostart)  enable_autostart && echo "enabled" || echo "failed" ;;
     disable-autostart) disable_autostart && echo "disabled" || echo "failed" ;;
     _start)   do_start ;;
     _install) do_install ;;
     _update)  do_stop; do_install && do_start ;;
-    *) echo "usage: $0 {install|start|stop|restart|update|status|logs|datadir|enable-autostart|disable-autostart}"; exit 1 ;;
+    *) echo "usage: $0 {install|start|stop|restart|update|status|logs|datadir|latest|enable-autostart|disable-autostart}"; exit 1 ;;
 esac
 
 

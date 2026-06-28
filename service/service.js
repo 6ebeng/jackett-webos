@@ -124,6 +124,17 @@ service.register('getLogs', function (message) {
 	});
 });
 
+service.register('checkUpdate', function (message) {
+	runScript(['latest'], 20000, function (err, stdout) {
+		var latest = String(stdout || '').trim();
+		readStatus(function (data) {
+			var installed = data.version || '';
+			var avail = !!(latest && installed && latest !== installed);
+			message.respond({ returnValue: true, installed: installed, latest: latest, updateAvailable: avail });
+		});
+	});
+});
+
 // Called by the autostart hook (luna://.../autostart) at boot.
 service.register('autostart', function (message) {
 	runDetached(['start']);
