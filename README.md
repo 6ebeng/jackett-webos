@@ -143,6 +143,10 @@ scripts/                make-icons / build / deploy / setup-device (PowerShell)
 - Packaging pattern inspired by [PicCap](https://github.com/TBSniller/piccap) / [hyperion-webos](https://github.com/webosbrew/hyperion-webos) and the [webOS Homebrew](https://www.webosbrew.org/) project.
 - This wrapper: MIT.
 
+---
+
+Made by **Tishko Rasoul** — [github.com/6ebeng/prowlarr-_webos](https://github.com/6ebeng/prowlarr-_webos)
+
 
 
 

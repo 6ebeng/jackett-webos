@@ -1,7 +1,7 @@
 {
 	"id": "com.prowlarr.app",
 	"version": "1.0.4",
-	"vendor": "Homebrew",
+	"vendor": "Tishko Rasoul",
 	"type": "web",
 	"main": "index.html",
 	"title": "Prowlarr",
