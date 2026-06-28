@@ -103,6 +103,15 @@ download() {
 }
 
 is_running() {
+    if command -v pgrep >/dev/null 2>&1; then
+        _p=$(pgrep -f "$BIN" 2>/dev/null | head -n1)
+        if [ -n "$_p" ]; then
+            echo "$_p" > "$PIDFILE"
+            return 0
+        fi
+        return 1
+    fi
+    # Fallback to pure PID file logic
     [ -f "$PIDFILE" ] || return 1
     _p=$(cat "$PIDFILE" 2>/dev/null)
     [ -n "$_p" ] || return 1
@@ -200,8 +209,9 @@ do_start() {
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     TMPDIR="$DATA_DIR/tmp" HOME="$DATA_DIR" XDG_CONFIG_HOME="$DATA_DIR" \
         nohup env LD_LIBRARY_PATH="$APP_DIR/usr/lib:$APP_DIR" "$APP_DIR/ld-musl.so" "$BIN" -nobrowser -data="$DATA_SUB" >>"$LOG" 2>&1 &
-    echo $! >"$PIDFILE"
-    sleep 1
+    
+    # Wait for the program to bind
+    sleep 3
     if is_running; then set_state "running"; else set_state "error:launch"; return 1; fi
     return 0
 }
