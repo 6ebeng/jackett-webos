@@ -78,6 +78,7 @@
 		$('version').textContent = s.version || '—';
 		$('arch').textContent = s.arch || '—';
 		$('datadir').textContent = s.dataDir || '—';
+		$('apikey').textContent = s.apiKey || '—';
 		// Autostart status
 		autostartOn = !!s.autostart;
 		$('autostart').textContent = autostartOn ? 'Enabled' : 'Disabled';

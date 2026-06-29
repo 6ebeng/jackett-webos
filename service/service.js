@@ -74,6 +74,15 @@ function readStatus(cb) {
 			/* keep default */
 		}
 		data.accessUrls = accessUrls();
+		// Read the configured API key from config.xml
+		try {
+			var base = data.dataDir || '/media/developer/prowlarr';
+			var cfg = fs.readFileSync(path.join(base, 'data', 'config.xml'), 'utf8');
+			var m = cfg.match(/<ApiKey>([^<]*)<\/ApiKey>/);
+			data.apiKey = m ? m[1] : '';
+		} catch (e) {
+			data.apiKey = '';
+		}
 		// Check if the autostart init script exists
 		try {
 			data.autostart = fs.existsSync('/var/lib/webosbrew/init.d/prowlarr');
