@@ -197,5 +197,17 @@
 		startPolling();
 		checkUpdate();
 		setInterval(checkUpdate, 30 * 60 * 1000);
+		
+		var xhr = new XMLHttpRequest();
+		xhr.open('GET', 'appinfo.json', true);
+		xhr.onload = function() {
+			if (xhr.status === 200) {
+				try {
+					var info = JSON.parse(xhr.responseText);
+					if (info.version) $('appversion').textContent = info.version;
+				} catch (e) { }
+			}
+		};
+		xhr.send();
 	});
 })();
