@@ -88,7 +88,6 @@
 		firstUrl = urls.length ? urls[0] : null;
 		$('urls').textContent = urls.length ? urls.join('    ') : 'http://<tv-ip>:' + (s.port || 9696);
 
-
 		if (s.state && s.state.indexOf('error') === 0) {
 			msg('Failed: ' + s.state + ' — open <b>Logs</b> for details, then press <b>Start</b> to retry.');
 		} else if (s.running) {
@@ -108,10 +107,15 @@
 	}
 
 	function poll() {
-		svc('status', {}, function (s) {
-			render(s);
-			if (logsVisible) refreshLogsLive();
-		}, function () {});
+		svc(
+			'status',
+			{},
+			function (s) {
+				render(s);
+				if (logsVisible) refreshLogsLive();
+			},
+			function () {},
+		);
 	}
 
 	function startPolling() {
@@ -212,15 +216,15 @@
 		startPolling();
 		checkUpdate();
 		setInterval(checkUpdate, 30 * 60 * 1000);
-		
+
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', 'appinfo.json', true);
-		xhr.onload = function() {
+		xhr.onload = function () {
 			if (xhr.status === 200) {
 				try {
 					var info = JSON.parse(xhr.responseText);
 					if (info.version) $('appversion').textContent = info.version;
-				} catch (e) { }
+				} catch (e) {}
 			}
 		};
 		xhr.send();

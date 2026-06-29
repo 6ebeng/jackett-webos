@@ -1,15 +1,15 @@
 {
-  "id": "com.prowlarr.app",
-  "version": "1.0.5",
-  "type": "web",
-  "title": "Prowlarr",
-  "appDescription": "Prowlarr is an indexer manager/proxy built on the popular *arr base stack. This port brings Prowlarr directly to your webOS device.",
-  "iconUrl": "https://raw.githubusercontent.com/6ebeng/prowlarr-webos/main/appinfo/icon.png",
-  "sourceUrl": "https://github.com/6ebeng/prowlarr-webos",
-  "rootRequired": true,
-  "ipkUrl": "https://github.com/6ebeng/prowlarr-webos/releases/download/v1.0.5/com.prowlarr.app_1.0.5_all.ipk",
-  "ipkHash": {
-    "sha256": "57616aee67a3071415f8eed1dcb50ba26f08f7a5c12f5147a9fc3d896dd15c54"
-  },
-  "ipkSize": 53746
+	"id": "com.prowlarr.app",
+	"version": "1.0.5",
+	"type": "web",
+	"title": "Prowlarr",
+	"appDescription": "Prowlarr is an indexer manager/proxy built on the popular *arr base stack. This port brings Prowlarr directly to your webOS device.",
+	"iconUrl": "https://raw.githubusercontent.com/6ebeng/prowlarr-webos/main/appinfo/icon.png",
+	"sourceUrl": "https://github.com/6ebeng/prowlarr-webos",
+	"rootRequired": true,
+	"ipkUrl": "https://github.com/6ebeng/prowlarr-webos/releases/download/v1.0.5/com.prowlarr.app_1.0.5_all.ipk",
+	"ipkHash": {
+		"sha256": "57616aee67a3071415f8eed1dcb50ba26f08f7a5c12f5147a9fc3d896dd15c54"
+	},
+	"ipkSize": 53746
 }
