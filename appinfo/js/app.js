@@ -159,6 +159,26 @@
 		}
 	}
 
+	// Bring the app window back to the foreground. With handlesRelaunch:false the
+	// platform foregrounds us automatically, so this is normally a no-op - but it
+	// also rescues any webOS build that delivers webOSRelaunch and then expects the
+	// app to foreground ITSELF via PalmSystem.activate() (otherwise tapping the
+	// tile while we are backgrounded does nothing).
+	function activateApp() {
+		try {
+			if (window.PalmSystem && typeof window.PalmSystem.activate === 'function') {
+				window.PalmSystem.activate();
+			}
+		} catch (e) {
+			/* ignore */
+		}
+	}
+
+	function onRelaunch() {
+		activateApp();
+		onForeground();
+	}
+
 	function setupVisibility() {
 		function onVisibilityChange() {
 			if (isHidden()) onBackground();
@@ -167,8 +187,8 @@
 		document.addEventListener('visibilitychange', onVisibilityChange, false);
 		document.addEventListener('webkitvisibilitychange', onVisibilityChange, false);
 		// webOS fires this when the tile is selected again while the app is still
-		// resident in the background.
-		document.addEventListener('webOSRelaunch', onForeground, false);
+		// resident in the background; make sure we come back to the foreground.
+		document.addEventListener('webOSRelaunch', onRelaunch, false);
 		// Belt-and-suspenders for older webOS WebViews that emit window focus/blur
 		// (or pageshow/pagehide) but not the Page Visibility events.
 		window.addEventListener('focus', onForeground, false);

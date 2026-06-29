@@ -1,6 +1,6 @@
 {
 	"id": "com.prowlarr.app",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"vendor": "Tishko Rasoul",
 	"type": "web",
 	"main": "index.html",
@@ -12,5 +12,5 @@
 	"bgColor": "#14181d",
 	"transparent": true,
 	"disableBackHistoryAPI": true,
-	"handlesRelaunch": true
+	"handlesRelaunch": false
 }
