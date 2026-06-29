@@ -87,12 +87,6 @@
 		firstUrl = urls.length ? urls[0] : null;
 		$('urls').textContent = urls.length ? urls.join('    ') : 'http://<tv-ip>:' + (s.port || 9696);
 
-		if (s.running && !wasRunning) {
-			wasRunning = true;
-			svc('createToast', { message: 'Prowlarr is now running!' }, null, null, 'com.webos.notification');
-		} else if (!s.running) {
-			wasRunning = false;
-		}
 
 		if (s.state && s.state.indexOf('error') === 0) {
 			msg('Failed: ' + s.state + ' — open <b>Logs</b> for details, then press <b>Start</b> to retry.');

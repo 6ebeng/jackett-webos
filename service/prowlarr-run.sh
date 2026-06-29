@@ -251,6 +251,8 @@ do_start() {
     nohup env -i \
         DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
         DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+        DOTNET_gcServer=0 \
+        COMPlus_gcServer=0 \
         PATH=/usr/bin:/bin \
         TMPDIR="$DATA_DIR/tmp" HOME="$DATA_DIR" XDG_CONFIG_HOME="$DATA_DIR" \
         LD_LIBRARY_PATH="$APP_DIR/usr/lib:$APP_DIR/lib" \
@@ -262,6 +264,7 @@ do_start() {
         sleep 1
         if is_running; then
             set_state "running"
+            luna-send -n 1 -f luna://com.webos.notification/createToast '{"message":"Prowlarr is now running!"}' >/dev/null 2>&1
             return 0
         fi
         i=$((i + 1))
