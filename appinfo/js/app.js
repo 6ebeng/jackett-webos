@@ -10,6 +10,7 @@
 	}
 
 	var pollTimer = null;
+	var updateTimer = null;
 	var firstUrl = null;
 	var logsVisible = false;
 	var wasRunning = false;
@@ -124,6 +125,58 @@
 		pollTimer = setInterval(poll, POLL_MS);
 	}
 
+	function stopPolling() {
+		if (pollTimer) {
+			clearInterval(pollTimer);
+			pollTimer = null;
+		}
+	}
+
+	// webOS keeps a web app resident in the background after Home is pressed, and
+	// its WebView does NOT throttle timers the way desktop browsers do. Left as-is
+	// we would keep forking a fresh `prowlarr-run.sh status` (plus a log fetch) on
+	// the TV every POLL_MS forever - a steady CPU/IO drain that stops the system
+	// app-launcher from suspending us cleanly and makes the NEXT app the user opens
+	// hang on launch. So suspend every background timer while hidden and resume
+	// (with an immediate refresh) when the app is shown again.
+	function isHidden() {
+		return !!(document.hidden || document.webkitHidden || document.visibilityState === 'hidden');
+	}
+
+	function onForeground() {
+		if (!pollTimer) startPolling();
+		if (!updateTimer) {
+			checkUpdate();
+			updateTimer = setInterval(checkUpdate, 30 * 60 * 1000);
+		}
+	}
+
+	function onBackground() {
+		stopPolling();
+		if (updateTimer) {
+			clearInterval(updateTimer);
+			updateTimer = null;
+		}
+	}
+
+	function setupVisibility() {
+		function onVisibilityChange() {
+			if (isHidden()) onBackground();
+			else onForeground();
+		}
+		document.addEventListener('visibilitychange', onVisibilityChange, false);
+		document.addEventListener('webkitvisibilitychange', onVisibilityChange, false);
+		// webOS fires this when the tile is selected again while the app is still
+		// resident in the background.
+		document.addEventListener('webOSRelaunch', onForeground, false);
+		// Belt-and-suspenders for older webOS WebViews that emit window focus/blur
+		// (or pageshow/pagehide) but not the Page Visibility events.
+		window.addEventListener('focus', onForeground, false);
+		window.addEventListener('blur', onBackground, false);
+		window.addEventListener('pageshow', onForeground, false);
+		window.addEventListener('pagehide', onBackground, false);
+	}
+
 	function checkUpdate() {
 		svc('checkUpdate', {}, function (r) {
 			var avail = r && r.updateAvailable;
@@ -213,9 +266,10 @@
 	window.addEventListener('load', function () {
 		wire();
 		setupNav();
+		setupVisibility();
 		startPolling();
 		checkUpdate();
-		setInterval(checkUpdate, 30 * 60 * 1000);
+		updateTimer = setInterval(checkUpdate, 30 * 60 * 1000);
 
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', 'appinfo.json', true);
