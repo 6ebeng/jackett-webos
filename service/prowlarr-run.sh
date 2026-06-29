@@ -154,12 +154,21 @@ is_running() {
 
 write_config() {
     cfg="$DATA_SUB/config.xml"
-    [ -f "$cfg" ] && return 0
+    if [ -f "$cfg" ]; then
+        # Ensure API key is fixed at 1 on existing installs
+        if grep -q "<ApiKey>" "$cfg"; then
+            sed -i 's#<ApiKey>[^<]*</ApiKey>#<ApiKey>1</ApiKey>#' "$cfg"
+        else
+            sed -i 's#</Config>#  <ApiKey>1</ApiKey>\n</Config>#' "$cfg"
+        fi
+        return 0
+    fi
     cat >"$cfg" <<EOF
 <Config>
   <BindAddress>*</BindAddress>
   <Port>$PORT</Port>
   <UrlBase></UrlBase>
+  <ApiKey>1</ApiKey>
   <EnableSsl>False</EnableSsl>
   <LaunchBrowser>False</LaunchBrowser>
   <AnalyticsEnabled>False</AnalyticsEnabled>
