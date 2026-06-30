@@ -250,7 +250,7 @@
 		$('btnLogs').onclick = toggleLogs;
 		$('btnOpen').onclick = function () {
 			if (firstUrl) {
-				window.location.href = firstUrl;
+				window.lunaCall('com.webos.applicationManager', 'launch', { id: 'com.webos.app.browser', params: { target: firstUrl } });
 			} else {
 				msg('No network address yet — start the server first.');
 			}
@@ -304,3 +304,4 @@
 		xhr.send();
 	});
 })();
+
