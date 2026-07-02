@@ -45,7 +45,13 @@ pick_datadir() {
     if [ -n "${PROWLARR_DATA:-}" ]; then
         if mkdir -p "$PROWLARR_DATA" 2>/dev/null; then echo "$PROWLARR_DATA"; return 0; fi
     fi
-    for d in /media/developer/prowlarr /home/root/prowlarr /media/internal/.prowlarr /tmp/prowlarr; do
+    # Prefer a data dir on the SAME media partition the app was installed to, so
+    # the config/database live beside the app whether it came from the Content
+    # Store (/media/cryptofs/apps/...) or a Homebrew/Developer install
+    # (/media/developer/apps/...). SCRIPT_DIR is .../apps/usr/palm/services/... so
+    # the leading /media/<root> is the install partition.
+    _root=$(printf '%s' "$SCRIPT_DIR" | sed -n 's,^\(/media/[^/]*\)/apps/.*,\1,p')
+    for d in ${_root:+"$_root/prowlarr"} /media/developer/prowlarr /media/cryptofs/prowlarr /home/root/prowlarr /media/internal/.prowlarr /tmp/prowlarr; do
         # Fast path: a dir validated on an earlier run keeps an .exec_ok marker.
         # Exec-capability is a static mount property, so while the marker (and the
         # dir) still exist and the dir is writable we skip the write/chmod/exec
@@ -320,6 +326,9 @@ do_install() {
     if ! ( gzip -dc "$TGZ" 2>/dev/null | tar -xf - -C "$APP_DIR.tmp" ) 2>/dev/null; then
         if ! tar -xzf "$TGZ" -C "$APP_DIR.tmp" 2>/dev/null; then set_state "error:extract"; return 1; fi
     fi
+    # The downloaded tarball is no longer needed once extracted - delete it right
+    # away to reclaim the ~90 MB before we fetch the runtime libraries.
+    rm -f "$TGZ" "$PART" 2>/dev/null
 
     rm -rf "$APP_DIR"
     if [ -d "$APP_DIR.tmp/Prowlarr" ]; then
@@ -327,7 +336,7 @@ do_install() {
     else
         mv "$APP_DIR.tmp" "$APP_DIR"
     fi
-    rm -rf "$APP_DIR.tmp" "$TGZ"
+    rm -rf "$APP_DIR.tmp"
     
     # Fetch the Alpine musl runtime libraries the self-contained .NET build links
     # against, plus the musl loader. Go through download() (curl/wget/node with
@@ -350,6 +359,9 @@ do_install() {
     if [ ! -x "$BIN" ] || [ ! -e ./ld-musl.so ]; then set_state "error:binmissing"; return 1; fi
     [ -n "$ver" ] && echo "$ver" >"$VERFILE"
     echo "$arch" >"$ARCHFILE"
+    # Sweep every remaining download artefact so only the extracted app is kept:
+    # the release metadata JSON and any partial/leftover archive in the data dir.
+    rm -f "$json" "$PART" "$TGZ" "$DATA_DIR"/*.apk 2>/dev/null
     set_state "stopped"
     return 0
 }

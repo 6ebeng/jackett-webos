@@ -29,8 +29,12 @@
 	var pendingBtnId = null;
 	var clickLockUntil = 0;
 
+	// The footer status line was removed from the UI; keep msg() as a safe no-op
+	// so existing call sites don't need to change (state is shown by the badge and
+	// the Status field instead).
 	function msg(text) {
-		$('msg').innerHTML = text || '';
+		var el = $('msg');
+		if (el) el.innerHTML = text || '';
 	}
 
 	function escapeHtml(s) {
