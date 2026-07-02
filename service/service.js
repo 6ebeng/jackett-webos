@@ -20,6 +20,10 @@ var SERVICE_ID = 'com.prowlarr.app.service';
 var PORT = 9696;
 var SCRIPT = path.join(__dirname, 'prowlarr-run.sh');
 
+// Firmware + webOS version are read once from the nyx os_info file and cached
+// (they never change at runtime). null = not read yet.
+var deviceInfoCache = null;
+
 var service = new Service(SERVICE_ID);
 
 // Make sure the control script is executable after install.
@@ -79,6 +83,20 @@ function readStatus(cb) {
 		} catch (e) {
 			data.autostart = false;
 		}
+		// Firmware (webos_manufacturing_version) + webOS version (webos_release),
+		// read once from the nyx os_info file and cached.
+		if (deviceInfoCache === null) {
+			deviceInfoCache = { firmware: '', webosVersion: '' };
+			try {
+				var oi = JSON.parse(fs.readFileSync('/var/run/nyx/os_info.json', 'utf8'));
+				deviceInfoCache.firmware = oi.webos_manufacturing_version || '';
+				deviceInfoCache.webosVersion = oi.webos_release || '';
+			} catch (e) {
+				/* not a TV / file missing */
+			}
+		}
+		data.firmware = deviceInfoCache.firmware;
+		data.webosVersion = deviceInfoCache.webosVersion;
 		data.returnValue = true;
 		cb(data);
 	});

@@ -25,16 +25,14 @@ header {
 header .logo { width: 64px; height: 64px; border-radius: 12px; margin-right: 24px; }
 header h1 { font-size: 44px; font-weight: 700; letter-spacing: 0.5px; }
 
-.badge {
+.devinfo {
   margin-left: auto;
-  font-size: 24px;
-  padding: 8px 22px;
-  border-radius: 999px;
+  text-align: right;
+  color: #8c97a3;
+  font-size: 20px;
+  line-height: 1.4;
 }
-.badge.running { background: #1f7a3d; color: #d6ffe2; }
-.badge.stopped { background: #3a3f46; color: #c7ced6; }
-.badge.busy    { background: #8a6d1f; color: #fff3d6; }
-.badge.error   { background: #8a2727; color: #ffd6d6; }
+.devinfo span { display: block; white-space: nowrap; }
 
 main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 main > section { margin-bottom: 28px; }
@@ -57,6 +55,10 @@ main > section:last-child { margin-bottom: 0; }
 .row:last-child { border-bottom: none; }
 .row .k { color: #8c97a3; }
 .row .v { color: #e8eef3; font-weight: 600; max-width: 70%; text-align: right; word-break: break-all; }
+/* Status row chip: only running/stopped states get a pill background. */
+.row .v.chip { display: inline-block; padding: 4px 20px; border-radius: 999px; font-weight: 700; }
+.row .v.chip.running { background: #1f7a3d; color: #d6ffe2; }
+.row .v.chip.stopped { background: #3a3f46; color: #c7ced6; }
 
 .actions { display: flex; flex-wrap: nowrap; align-items: stretch; }
 

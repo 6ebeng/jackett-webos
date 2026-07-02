@@ -156,32 +156,6 @@
 		});
 	}
 
-	function setBadge(running, state) {
-		var b = $('badge');
-		state = state || '';
-		if (running) {
-			b.textContent = 'Running';
-			b.className = 'badge running';
-		} else if (state.indexOf('error') === 0) {
-			b.textContent = 'Error';
-			b.className = 'badge error';
-		} else if (isBusyState(state)) {
-			var labels = {
-				downloading: 'Downloading',
-				extracting: 'Extracting',
-				'fetching-deps': 'Fetching deps',
-				starting: 'Starting',
-				stopping: 'Stopping',
-				restarting: 'Restarting',
-			};
-			b.textContent = (labels[state] || 'Working') + '…';
-			b.className = 'badge busy';
-		} else {
-			b.textContent = 'Stopped';
-			b.className = 'badge stopped';
-		}
-	}
-
 	function fmtMB(b) {
 		var mb = b / 1048576;
 		return (mb < 10 ? mb.toFixed(1) : Math.round(mb)) + ' MB';
@@ -190,9 +164,12 @@
 	function render(s) {
 		s = s || {};
 		lastStatus = s;
-		setBadge(s.running, s.state);
 
-		var stateText = s.state || (s.running ? 'running' : 'stopped');
+		if (s.firmware) $('fwversion').textContent = 'Firmware version: ' + s.firmware;
+		if (s.webosVersion) $('osversion').textContent = 'webOS version: ' + s.webosVersion;
+
+		var st = s.state || '';
+		var stateText = st || (s.running ? 'running' : 'stopped');
 		var dl = +s.downloadedBytes || 0;
 		var tot = +s.totalBytes || 0;
 		if (s.state === 'downloading') {
@@ -205,7 +182,19 @@
 				stateText = 'downloading… (contacting GitHub)';
 			}
 		}
-		$('state').textContent = stateText;
+		// The Status value shows a coloured chip ONLY for the running/stopped
+		// resting states; transient (busy) and error states stay as plain text.
+		var stEl = $('state');
+		var chip = '';
+		if (s.running) {
+			stateText = 'Running';
+			chip = 'running';
+		} else if (!isBusyState(st) && st.indexOf('error') !== 0) {
+			stateText = 'Stopped';
+			chip = 'stopped';
+		}
+		stEl.textContent = stateText;
+		stEl.className = chip ? 'v chip ' + chip : 'v';
 		$('version').textContent = s.version || '—';
 		currentVersion = s.version || '';
 		$('arch').textContent = s.arch || '—';

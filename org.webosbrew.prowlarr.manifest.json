@@ -9,7 +9,7 @@
 	"rootRequired": true,
 	"ipkUrl": "https://github.com/6ebeng/prowlarr-webos/releases/download/v1.0.16/com.prowlarr.app_1.0.16_all.ipk",
 	"ipkHash": {
-		"sha256": "6d931a6bb9b752b05cfac8a0a02138a44d1a9b6f406284f137438fb1b9c539de"
+		"sha256": "afa60cf5f1835e282d21df6cfdd81d6336c0c63c2a93616dc3a443b7fd61f865"
 	},
-	"ipkSize": 68648
+	"ipkSize": 68896
 }
