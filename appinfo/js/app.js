@@ -273,22 +273,43 @@
 			box.innerHTML = '<div class="vempty">No releases found. Check the network connection and try again.</div>';
 			return;
 		}
-		var latest = versions[0];
-		var html = '';
-		var i, v, note;
+		// Normalise: the service returns {tag, prerelease} objects, but tolerate a
+		// plain-string list from an older service build (treated as stable).
+		var list = [];
+		var i, item, tag, pre;
 		for (i = 0; i < versions.length; i++) {
-			v = versions[i];
-			note = '';
-			if (v === currentVersion) note = '<span class="tag-note current-note">Installed</span>';
-			else if (v === latest) note = '<span class="tag-note">Latest</span>';
+			item = versions[i];
+			if (item && typeof item === 'object') list.push({ tag: item.tag, prerelease: !!item.prerelease });
+			else list.push({ tag: item, prerelease: false });
+		}
+		// The "Latest" chip belongs on the newest STABLE release (matches GitHub's
+		// /releases/latest), not merely the first entry - which is often a develop
+		// pre-release.
+		var latestStable = '';
+		for (i = 0; i < list.length; i++) {
+			if (!list[i].prerelease) {
+				latestStable = list[i].tag;
+				break;
+			}
+		}
+		var html = '';
+		for (i = 0; i < list.length; i++) {
+			tag = list[i].tag;
+			pre = list[i].prerelease;
+			var chips = '';
+			if (tag === currentVersion) chips += '<span class="tag-note current-note">Installed</span>';
+			if (tag === latestStable) chips += '<span class="tag-note latest-note">Latest</span>';
+			if (pre) chips += '<span class="tag-note pre-note">Pre-release</span>';
 			html +=
 				'<button class="vitem' +
-				(v === currentVersion ? ' current' : '') +
+				(tag === currentVersion ? ' current' : '') +
 				'" data-tag="' +
-				escapeHtml(v) +
+				escapeHtml(tag) +
 				'">' +
-				escapeHtml(v) +
-				note +
+				'<span class="vitem-tag">' +
+				escapeHtml(tag) +
+				'</span>' +
+				chips +
 				'</button>';
 		}
 		box.innerHTML = html;

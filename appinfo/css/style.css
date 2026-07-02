@@ -170,6 +170,8 @@ footer b { color: #cdd6df; }
   color: #06222c;
 }
 .vitem .tag-note.current-note { background: #1f7a3d; color: #d6ffe2; }
+.vitem .tag-note.latest-note { background: #35c5f0; color: #06222c; }
+.vitem .tag-note.pre-note { background: #d98c1f; color: #2c1c05; }
 .dialog-actions { display: flex; justify-content: flex-end; margin-top: 24px; }
 .dialog-actions .btn { flex: 0 0 auto; min-width: 180px; }
 

@@ -140,8 +140,10 @@ service.register('checkUpdate', function (message) {
 	});
 });
 
-// List the Prowlarr release tags available upstream (newest first) so the UI
-// can offer a manual version picker for downgrades / compatibility fixes.
+// List the Prowlarr releases available upstream (newest first) so the UI can
+// offer a manual version picker for downgrades / compatibility fixes. Each line
+// from the control script is "<tag>|<prerelease>"; we parse it into objects so
+// the UI can flag pre-release and latest-stable builds.
 service.register('listVersions', function (message) {
 	runScript(['versions'], 30000, function (err, stdout) {
 		var versions = String(stdout || '')
@@ -151,6 +153,10 @@ service.register('listVersions', function (message) {
 			})
 			.filter(function (v) {
 				return v.length > 0;
+			})
+			.map(function (line) {
+				var parts = line.split('|');
+				return { tag: parts[0], prerelease: parts[1] === 'true' };
 			});
 		message.respond({ returnValue: true, versions: versions });
 	});

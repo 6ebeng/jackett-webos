@@ -210,20 +210,26 @@ do_latest() {
     cat "$LATESTFILE" 2>/dev/null
 }
 
-# List the available release tags from GitHub (newest first), one per line, so
-# the UI can offer a manual version picker for downgrades / compatibility fixes.
-# Cached for an hour to keep repeated opens of the picker cheap.
+# List the available releases from GitHub (newest first), one per line as
+# "<tag>|<prerelease>" (e.g. "v2.5.0.5422|true"), so the UI can offer a manual
+# version picker and flag pre-release / latest builds. GitHub returns fields in
+# a fixed order (tag_name before prerelease) so the Nth tag pairs with the Nth
+# prerelease flag. Cached for an hour to keep repeated opens of the picker cheap.
 do_versions() {
-    if [ -f "$VERSIONSFILE" ]; then
+    if [ -f "$VERSIONSFILE" ] && grep -q '|' "$VERSIONSFILE" 2>/dev/null; then
         _age=$(( $(date +%s) - $(date -r "$VERSIONSFILE" +%s 2>/dev/null || echo 0) ))
         if [ "$_age" -lt 3600 ]; then cat "$VERSIONSFILE"; return 0; fi
     fi
     _j="$DATA_DIR/releases.json"
     if download "$RELEASES_URL" "$_j"; then
         _tags=$(grep -o '"tag_name"[ ]*:[ ]*"[^"]*"' "$_j" | sed 's/.*"\([^"]*\)"$/\1/')
+        _pres=$(grep -o '"prerelease"[ ]*:[ ]*[a-z]*' "$_j" | sed 's/.*:[ ]*//')
         rm -f "$_j" 2>/dev/null
         if [ -n "$_tags" ]; then
-            printf '%s\n' "$_tags" >"$VERSIONSFILE"
+            printf '%s\n' "$_tags" >"$DATA_DIR/.vt"
+            printf '%s\n' "$_pres" >"$DATA_DIR/.vp"
+            awk 'NR==FNR{t[FNR]=$0;next}{print t[FNR] "|" $0}' "$DATA_DIR/.vt" "$DATA_DIR/.vp" >"$VERSIONSFILE"
+            rm -f "$DATA_DIR/.vt" "$DATA_DIR/.vp" 2>/dev/null
             cat "$VERSIONSFILE"
             return 0
         fi
