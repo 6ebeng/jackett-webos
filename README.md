@@ -24,12 +24,14 @@ powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 -Autostart  # also e
 1. Launch **Prowlarr** on the TV and press **Start** (first launch downloads ~95 MB).
 2. Manage from any device at `http://<tv-ip>:9696`.
 
-Buttons: Start / Stop / Restart / Update / Autostart / Open Web UI / Logs.
+Buttons: Start / Stop / Restart / Update / Select version / Autostart / Open Web UI / Logs.
+
+**Select version** installs any official Prowlarr release (upgrade or downgrade). The downloaded archive is deleted right after extraction to save space.
 
 ## Notes
 
 - Prowlarr binds all interfaces — set an admin account in Settings and keep it on a trusted LAN.
-- Data is stored in the first writable path among `/media/developer/prowlarr`, `/home/root/prowlarr`, `/media/internal/.prowlarr`, `/tmp/prowlarr`.
+- Data is stored beside the app on the same partition it was installed to: `/media/cryptofs/prowlarr` for Content Store installs, `/media/developer/prowlarr` for Homebrew/Developer installs (falling back to `/home/root/prowlarr`, `/media/internal/.prowlarr`, `/tmp/prowlarr` if needed).
 
 ## Layout
 
