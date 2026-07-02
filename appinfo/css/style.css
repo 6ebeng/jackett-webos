@@ -57,11 +57,12 @@ main { flex: 1; display: flex; flex-direction: column; gap: 28px; min-height: 0;
 .row .k { color: #8c97a3; }
 .row .v { color: #e8eef3; font-weight: 600; max-width: 70%; text-align: right; word-break: break-all; }
 
-.actions { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 12px; }
+.actions { display: flex; flex-wrap: nowrap; align-items: stretch; }
 
 .btn {
   flex: 1 1 0;
   min-width: 0;
+  margin-right: 12px;
   font-size: 24px;
   font-weight: 600;
   padding: 16px 12px;
@@ -77,6 +78,7 @@ main { flex: 1; display: flex; flex-direction: column; gap: 28px; min-height: 0;
   text-align: center;
   transition: transform 0.08s ease, border-color 0.08s ease;
 }
+.btn:last-child { margin-right: 0; }
 .btn.primary { background: #35c5f0; color: #06222c; font-weight: 700; }
 .btn:focus { border-color: #35c5f0; transform: scale(1.03); }
 .btn.primary:focus { border-color: #ffffff; }
