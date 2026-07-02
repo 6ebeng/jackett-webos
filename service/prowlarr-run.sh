@@ -392,7 +392,13 @@ do_start() {
     write_config
     set_state "starting"
     cd "$APP_DIR" 2>/dev/null || { set_state "error:chdir"; return 1; }
-    nohup env -i \
+    # Launch Prowlarr in its OWN session so it is fully detached from the
+    # short-lived app service that spawned it. On webOS 9 the app/service session
+    # (cgroup) can be torn down when the app is closed, which would reap a child
+    # left in it; setsid puts Prowlarr in a new session that survives on its own.
+    # Fall back to nohup on firmwares without setsid.
+    if command -v setsid >/dev/null 2>&1; then _detach="setsid"; else _detach="nohup"; fi
+    $_detach env -i \
         DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
         DOTNET_CLI_TELEMETRY_OPTOUT=1 \
         DOTNET_gcServer=0 \
@@ -480,7 +486,12 @@ do_stop() {
 }
 
 do_status() {
-    if is_running; then r=true; else r=false; fi
+    # "running" means the server is genuinely there. Prefer the cheap process
+    # check (pgrep), but fall back to an HTTP /ping probe so a live server is
+    # still reported running even if the process check misses it (e.g. the
+    # process cmdline was rewritten, or a jailed service context can't see the
+    # pid). This prevents showing "stopped" for a Prowlarr that is actually up.
+    if is_running; then r=true; elif port_ready; then r=true; else r=false; fi
     if [ -x "$BIN" ]; then ins=true; else ins=false; fi
     st=$(cat "$STATEFILE" 2>/dev/null); [ -z "$st" ] && st="idle"
     # Reconcile a stale state file: if the process is gone but the last recorded
