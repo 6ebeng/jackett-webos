@@ -144,8 +144,15 @@ footer b { color: #cdd6df; }
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  padding-right: 6px;
+  /* Room so a focused item's scaled-up border isn't clipped by the overflow,
+     plus a gap on the right for the scrollbar. */
+  padding: 6px 14px 6px 6px;
 }
+/* Thin, unobtrusive scrollbar for the version list. */
+.vlist::-webkit-scrollbar { width: 6px; }
+.vlist::-webkit-scrollbar-track { background: transparent; }
+.vlist::-webkit-scrollbar-thumb { background: #3a4650; border-radius: 999px; }
+.vlist::-webkit-scrollbar-thumb:hover { background: #4a5a66; }
 .vempty { font-size: 24px; color: #8c97a3; padding: 24px 4px; }
 .vitem {
   display: block;
@@ -161,12 +168,12 @@ footer b { color: #cdd6df; }
   color: #e8eef3;
   cursor: pointer;
   outline: none;
-  transition: transform 0.08s ease, border-color 0.08s ease;
+  transition: border-color 0.08s ease, background 0.08s ease;
   flex-shrink: 0;
 }
 .vitem:last-child { margin-bottom: 0; }
 .vitem.current { background: #22303a; }
-.vitem:focus { border-color: #35c5f0; transform: scale(1.02); }
+.vitem:focus { border-color: #35c5f0; background: #313b45; }
 .vitem .tag-note {
   float: right;
   font-size: 18px;

@@ -126,20 +126,23 @@
 	}
 
 	// Poll rapidly while an action is in flight so the loading feedback ends the
-	// moment the server actually toggles (start/stop), instead of waiting up to a
-	// full POLL_MS for the next regular poll. Stops as soon as the button state
-	// settles (pendingBtnId cleared) or after a safety cap.
+	// moment the server actually toggles (start/stop), AND so the download progress
+	// text keeps updating smoothly for the whole install (a version download is
+	// ~95 MB / up to a minute+, far longer than the initial feedback window).
+	// Stops once the action has settled and the server is no longer busy, or after
+	// a generous safety cap.
 	function startFastPoll() {
-		fastPollUntil = Date.now() + 20000;
+		fastPollUntil = Date.now() + 300000; // 5 min safety cap (covers a slow download)
 		if (fastPollTimer) return;
 		fastPollTimer = setInterval(function () {
-			if (!pendingBtnId || Date.now() > fastPollUntil) {
+			var busy = pendingBtnId || isBusyState(lastStatus && lastStatus.state);
+			if (!busy || Date.now() > fastPollUntil) {
 				clearInterval(fastPollTimer);
 				fastPollTimer = null;
 				return;
 			}
 			poll();
-		}, 500);
+		}, 700);
 	}
 
 	function svc(method, params, ok, fail, overrideService) {
