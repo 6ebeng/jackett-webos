@@ -427,6 +427,10 @@ do_status() {
     if is_running; then r=true; else r=false; fi
     if [ -x "$BIN" ]; then ins=true; else ins=false; fi
     st=$(cat "$STATEFILE" 2>/dev/null); [ -z "$st" ] && st="idle"
+    # Reconcile a stale state file: if the process is gone but the last recorded
+    # state still says "running", report it as stopped so the UI doesn't show a
+    # stopped server with a "running" state (which confused the action buttons).
+    if [ "$r" = "false" ] && [ "$st" = "running" ]; then st="stopped"; fi
     ver=$(cat "$VERFILE" 2>/dev/null)
     arch=$(detect_arch)
 

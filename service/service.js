@@ -35,16 +35,6 @@ function runScript(args, timeoutMs, cb) {
 	});
 }
 
-function runDetached(args) {
-	try {
-		var p = child.spawn('sh', [SCRIPT].concat(args), { detached: true, stdio: 'ignore' });
-		p.unref();
-		return true;
-	} catch (e) {
-		return false;
-	}
-}
-
 function accessUrls() {
 	var urls = [];
 	try {
@@ -100,14 +90,19 @@ service.register('status', function (message) {
 	});
 });
 
-// Fire-and-forget actions: launch the detached script run and acknowledge at
-// once. The front-end follows progress by polling "status".
+// Fire-and-forget actions: the script itself backgrounds the real work (spawn_bg
+// / setsid) and returns at once. We run it with runScript (execFile) rather than
+// a bare detached spawn so the JS service stays alive until the background job
+// has fully detached into its own session — otherwise webOS can tear the service
+// down the instant we respond and kill the child before it survives on its own
+// (which made Start/Restart/Update fire intermittently).
 function registerDetached(method, scriptArg, ackKey) {
 	service.register(method, function (message) {
-		runDetached([scriptArg]);
-		var res = { returnValue: true };
-		res[ackKey] = true;
-		message.respond(res);
+		runScript([scriptArg], 20000, function () {
+			var res = { returnValue: true };
+			res[ackKey] = true;
+			message.respond(res);
+		});
 	});
 }
 

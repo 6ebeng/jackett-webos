@@ -20,12 +20,12 @@
 	var currentVersion = '';
 	var updateAvailable = false;
 	var lastStatus = {};
-	// Action feedback: which button was pressed and what outcome we are waiting
-	// for, so the button set can show a "loading" state until the server settles.
-	var pendingAction = null; // 'start' | 'stop' | 'restart' | 'update'
+	// Action feedback: which button was pressed and a short lock window during
+	// which the action buttons stay in a "loading" state, giving instant tap
+	// feedback before the first status poll arrives. After the lock expires the
+	// buttons follow the real server state, so nothing can get stuck greyed.
 	var pendingBtnId = null;
-	var pendingUntil = 0;
-	var pendingSawDown = false;
+	var clickLockUntil = 0;
 
 	function msg(text) {
 		$('msg').innerHTML = text || '';
@@ -67,34 +67,20 @@
 		return st === 'downloading' || st === 'extracting' || st === 'fetching-deps' || st === 'starting';
 	}
 
-	// Has the action the user pressed reached its expected outcome yet? Used to
-	// keep the pressed button in its "loading" state across the brief gap before
-	// the server first reports the transitional state (and through Stop, which
-	// has no dedicated state of its own).
-	function actionSettled(s) {
-		if (!pendingAction) return true;
-		if (Date.now() > pendingUntil) return true; // safety valve against a hang
-		if (s.state && s.state.indexOf('error') === 0) return true;
-		if (pendingAction === 'stop') return !s.running;
-		// start / restart / update / install all settle once the server is running
-		// again — but only after we have actually seen it go down, so a restart of
-		// an already-running server doesn't look "done" on the very first poll.
-		return pendingSawDown && !!s.running;
-	}
-
 	// Drive the enabled/disabled + loading state of every action button from the
 	// latest status, so e.g. Start greys out while running and Update greys out
 	// when there is nothing to update.
 	function updateButtons(s) {
 		s = s || lastStatus || {};
 		var running = !!s.running;
-		if (pendingAction && !running) pendingSawDown = true;
-		var pending = pendingAction && !actionSettled(s);
-		if (!pending) {
-			pendingAction = null;
-			pendingBtnId = null;
-		}
-		var busy = isBusyState(s.state) || !!pending;
+		// "locked" is a short window right after a tap so the pressed button shows
+		// loading instantly. Once it expires the buttons follow the real server
+		// state (running + transitional busy states), so nothing stays greyed if
+		// an action silently fails to change anything.
+		var locked = Date.now() < clickLockUntil;
+		if (!locked) clickLockUntil = 0;
+		var busy = isBusyState(s.state) || locked;
+		if (!busy) pendingBtnId = null;
 
 		setBtnDisabled($('btnStart'), running || busy);
 		setBtnDisabled($('btnStop'), !running || busy);
@@ -114,13 +100,11 @@
 		if (busy && pendingBtnId) addClass($(pendingBtnId), 'loading');
 	}
 
-	// Record the pressed button/action and immediately reflect it in the UI so
-	// the tap gives instant feedback before the first status poll arrives.
-	function beginAction(action, btnId, message) {
-		pendingAction = action;
+	// Record the pressed button and open a short feedback window so the tap gives
+	// instant loading feedback before the first status poll arrives.
+	function beginAction(btnId, message) {
 		pendingBtnId = btnId;
-		pendingSawDown = false;
-		pendingUntil = Date.now() + 180000; // 3 min safety for the ~95 MB download
+		clickLockUntil = Date.now() + 10000; // 10s bridge until a transitional state shows
 		if (message) msg(message);
 		updateButtons(lastStatus);
 	}
@@ -450,7 +434,7 @@
 			msg('Prowlarr <b>' + escapeHtml(tag) + '</b> is already installed.');
 			return;
 		}
-		beginAction('start', 'btnSelectVersion', 'Installing Prowlarr <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.');
+		beginAction('btnSelectVersion', 'Installing Prowlarr <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.');
 		svc('selectVersion', { version: tag }, poll);
 		closeVersionPicker();
 		setTimeout(checkUpdate, 60000);
@@ -459,22 +443,22 @@
 	function wire() {
 		$('btnStart').onclick = function () {
 			if (isDisabled($('btnStart'))) return;
-			beginAction('start', 'btnStart', 'Starting… first launch downloads Prowlarr (~95&nbsp;MB), this can take a minute.');
+			beginAction('btnStart', 'Starting… first launch downloads Prowlarr (~95&nbsp;MB), this can take a minute.');
 			svc('start', {}, poll);
 		};
 		$('btnStop').onclick = function () {
 			if (isDisabled($('btnStop'))) return;
-			beginAction('stop', 'btnStop', 'Stopping…');
+			beginAction('btnStop', 'Stopping…');
 			svc('stop', {}, poll);
 		};
 		$('btnRestart').onclick = function () {
 			if (isDisabled($('btnRestart'))) return;
-			beginAction('restart', 'btnRestart', 'Restarting…');
+			beginAction('btnRestart', 'Restarting…');
 			svc('restart', {}, poll);
 		};
 		$('btnUpdate').onclick = function () {
 			if (isDisabled($('btnUpdate'))) return;
-			beginAction('update', 'btnUpdate', 'Updating to the latest Prowlarr release…');
+			beginAction('btnUpdate', 'Updating to the latest Prowlarr release…');
 			svc('update', {}, poll);
 			setTimeout(checkUpdate, 60000);
 		};
