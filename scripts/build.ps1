@@ -28,6 +28,20 @@ try {
         try { npm install --omit=dev --no-audit --no-fund } finally { Pop-Location }
     }
 
+    # 3b. Patch webos-service for old Node runtimes (webOS 4.x ships Node 0.12,
+    #     which cannot parse ES6 rest params). Rewrite the two rest-parameter
+    #     methods to ES5 `arguments`. Idempotent: skips if already patched.
+    $wsService = Join-Path $root 'service\node_modules\webos-service\lib\service.js'
+    if (Test-Path $wsService) {
+        $ws = [System.IO.File]::ReadAllText($wsService)
+        if ($ws -match '\.\.\.params') {
+            $ws = $ws -replace 'Service\.prototype\.call = function\(\.\.\.params\) \{', "Service.prototype.call = function() {`n`tvar params = Array.prototype.slice.call(arguments);"
+            $ws = $ws -replace 'Service\.prototype\.subscribe = function\(\.\.\.params\) \{', "Service.prototype.subscribe = function() {`n`tvar params = Array.prototype.slice.call(arguments);"
+            [System.IO.File]::WriteAllText($wsService, $ws)
+            Write-Host 'Patched webos-service for Node 0.12 (webOS 4.x) compatibility.'
+        }
+    }
+
     # 4. Normalise shell scripts to LF so they run on the TV.
     foreach ($f in @('service\prowlarr-run.sh', 'service\prowlarr-autostart')) {
         $p = Join-Path $root $f
