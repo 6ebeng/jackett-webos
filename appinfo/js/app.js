@@ -78,6 +78,12 @@
 		// state (running + transitional busy states), so nothing stays greyed if
 		// an action silently fails to change anything.
 		var locked = Date.now() < clickLockUntil;
+		// Release the lock early once the pressed action has visibly taken effect,
+		// so e.g. Stop greys out the moment the server is actually down instead of
+		// staying in the loading state for the rest of the window. Start/Stop are
+		// unambiguous (the server only toggles up/down), so this is always safe.
+		if (locked && pendingBtnId === 'btnStop' && !running) locked = false;
+		if (locked && pendingBtnId === 'btnStart' && running) locked = false;
 		if (!locked) clickLockUntil = 0;
 		var busy = isBusyState(s.state) || locked;
 		if (!busy) pendingBtnId = null;
