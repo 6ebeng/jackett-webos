@@ -18,6 +18,14 @@
 	var autostartAvailable = true;
 	var pickerOpen = false;
 	var currentVersion = '';
+	var updateAvailable = false;
+	var lastStatus = {};
+	// Action feedback: which button was pressed and what outcome we are waiting
+	// for, so the button set can show a "loading" state until the server settles.
+	var pendingAction = null; // 'start' | 'stop' | 'restart' | 'update'
+	var pendingBtnId = null;
+	var pendingUntil = 0;
+	var pendingSawDown = false;
 
 	function msg(text) {
 		$('msg').innerHTML = text || '';
@@ -38,6 +46,83 @@
 		} else {
 			btn.className = btn.className.replace(/\s*disabled/g, '');
 		}
+	}
+
+	function addClass(btn, c) {
+		if (btn && btn.className.indexOf(c) === -1) btn.className += ' ' + c;
+	}
+
+	function removeClass(btn, c) {
+		if (btn) btn.className = btn.className.replace(new RegExp('\\s*' + c, 'g'), '');
+	}
+
+	function isDisabled(btn) {
+		return !!btn && btn.className.indexOf('disabled') !== -1;
+	}
+
+	// Transitional server states where an action is already under way and the
+	// action buttons must stay locked/greyed until it resolves.
+	function isBusyState(st) {
+		st = st || '';
+		return st === 'downloading' || st === 'extracting' || st === 'fetching-deps' || st === 'starting';
+	}
+
+	// Has the action the user pressed reached its expected outcome yet? Used to
+	// keep the pressed button in its "loading" state across the brief gap before
+	// the server first reports the transitional state (and through Stop, which
+	// has no dedicated state of its own).
+	function actionSettled(s) {
+		if (!pendingAction) return true;
+		if (Date.now() > pendingUntil) return true; // safety valve against a hang
+		if (s.state && s.state.indexOf('error') === 0) return true;
+		if (pendingAction === 'stop') return !s.running;
+		// start / restart / update / install all settle once the server is running
+		// again — but only after we have actually seen it go down, so a restart of
+		// an already-running server doesn't look "done" on the very first poll.
+		return pendingSawDown && !!s.running;
+	}
+
+	// Drive the enabled/disabled + loading state of every action button from the
+	// latest status, so e.g. Start greys out while running and Update greys out
+	// when there is nothing to update.
+	function updateButtons(s) {
+		s = s || lastStatus || {};
+		var running = !!s.running;
+		if (pendingAction && !running) pendingSawDown = true;
+		var pending = pendingAction && !actionSettled(s);
+		if (!pending) {
+			pendingAction = null;
+			pendingBtnId = null;
+		}
+		var busy = isBusyState(s.state) || !!pending;
+
+		setBtnDisabled($('btnStart'), running || busy);
+		setBtnDisabled($('btnStop'), !running || busy);
+		setBtnDisabled($('btnRestart'), !running || busy);
+		setBtnDisabled($('btnSelectVersion'), busy);
+		setBtnDisabled($('btnOpen'), !running);
+		setBtnDisabled($('btnUpdate'), !updateAvailable || busy);
+		setBtnDisabled($('btnAutostart'), !autostartAvailable || busy);
+
+		// Highlight Update only when there is genuinely an update to apply.
+		if (updateAvailable && !busy) addClass($('btnUpdate'), 'attention');
+		else removeClass($('btnUpdate'), 'attention');
+
+		// Pulse the pressed button while its action is in flight.
+		var ids = ['btnStart', 'btnStop', 'btnRestart', 'btnUpdate', 'btnAutostart', 'btnSelectVersion'];
+		for (var i = 0; i < ids.length; i++) removeClass($(ids[i]), 'loading');
+		if (busy && pendingBtnId) addClass($(pendingBtnId), 'loading');
+	}
+
+	// Record the pressed button/action and immediately reflect it in the UI so
+	// the tap gives instant feedback before the first status poll arrives.
+	function beginAction(action, btnId, message) {
+		pendingAction = action;
+		pendingBtnId = btnId;
+		pendingSawDown = false;
+		pendingUntil = Date.now() + 180000; // 3 min safety for the ~95 MB download
+		if (message) msg(message);
+		updateButtons(lastStatus);
 	}
 
 	function svc(method, params, ok, fail, overrideService) {
@@ -81,6 +166,7 @@
 
 	function render(s) {
 		s = s || {};
+		lastStatus = s;
 		setBadge(s.running, s.state);
 
 		var stateText = s.state || (s.running ? 'running' : 'stopped');
@@ -112,11 +198,9 @@
 		if (autostartAvailable) {
 			$('autostart').textContent = autostartOn ? 'Enabled' : 'Disabled';
 			$('btnAutostart').textContent = 'Autostart: ' + (autostartOn ? 'On' : 'Off');
-			setBtnDisabled($('btnAutostart'), false);
 		} else {
 			$('autostart').textContent = 'Unavailable (needs rooted TV)';
 			$('btnAutostart').textContent = 'Autostart: N/A';
-			setBtnDisabled($('btnAutostart'), true);
 		}
 		var urls = s.accessUrls || [];
 		firstUrl = urls.length ? urls[0] : null;
@@ -134,6 +218,8 @@
 		} else if (s.running) {
 			msg('Running. Manage Prowlarr from any device at the Access URL above.');
 		}
+
+		updateButtons(s);
 	}
 
 	// Refresh the live log view while polling, preserving the user's scroll
@@ -240,8 +326,8 @@
 	function checkUpdate() {
 		svc('checkUpdate', {}, function (r) {
 			var avail = r && r.updateAvailable;
+			updateAvailable = !!avail;
 			$('updatebadge').className = 'pill' + (avail ? '' : ' hidden');
-			$('btnUpdate').className = 'btn' + (avail ? ' attention' : '');
 			if (avail) {
 				$('btnUpdate').textContent = 'Update to ' + r.latest;
 				$('updatebadge').textContent = 'Update available (' + r.latest + ')';
@@ -249,6 +335,7 @@
 			} else {
 				$('btnUpdate').textContent = 'Update server';
 			}
+			updateButtons(lastStatus);
 		});
 	}
 
@@ -363,7 +450,7 @@
 			msg('Prowlarr <b>' + escapeHtml(tag) + '</b> is already installed.');
 			return;
 		}
-		msg('Installing Prowlarr <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.');
+		beginAction('start', 'btnSelectVersion', 'Installing Prowlarr <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.');
 		svc('selectVersion', { version: tag }, poll);
 		closeVersionPicker();
 		setTimeout(checkUpdate, 60000);
@@ -371,23 +458,28 @@
 
 	function wire() {
 		$('btnStart').onclick = function () {
-			msg('Starting… first launch downloads Prowlarr (~95&nbsp;MB), this can take a minute.');
+			if (isDisabled($('btnStart'))) return;
+			beginAction('start', 'btnStart', 'Starting… first launch downloads Prowlarr (~95&nbsp;MB), this can take a minute.');
 			svc('start', {}, poll);
 		};
 		$('btnStop').onclick = function () {
-			msg('Stopping…');
+			if (isDisabled($('btnStop'))) return;
+			beginAction('stop', 'btnStop', 'Stopping…');
 			svc('stop', {}, poll);
 		};
 		$('btnRestart').onclick = function () {
-			msg('Restarting…');
+			if (isDisabled($('btnRestart'))) return;
+			beginAction('restart', 'btnRestart', 'Restarting…');
 			svc('restart', {}, poll);
 		};
 		$('btnUpdate').onclick = function () {
-			msg('Updating to the latest Prowlarr release…');
+			if (isDisabled($('btnUpdate'))) return;
+			beginAction('update', 'btnUpdate', 'Updating to the latest Prowlarr release…');
 			svc('update', {}, poll);
 			setTimeout(checkUpdate, 60000);
 		};
 		$('btnAutostart').onclick = function () {
+			if (isDisabled($('btnAutostart'))) return;
 			if (!autostartAvailable) {
 				msg('Autostart needs a rooted TV with the Homebrew Channel. On a non-rooted TV, open the app manually after each reboot.');
 				return;
@@ -401,9 +493,13 @@
 			}
 		};
 		$('btnLogs').onclick = toggleLogs;
-		$('btnSelectVersion').onclick = openVersionPicker;
+		$('btnSelectVersion').onclick = function () {
+			if (isDisabled($('btnSelectVersion'))) return;
+			openVersionPicker();
+		};
 		$('btnVCancel').onclick = closeVersionPicker;
 		$('btnOpen').onclick = function () {
+			if (isDisabled($('btnOpen'))) return;
 			if (!firstUrl) {
 				msg('No network address yet — start the server first.');
 				return;

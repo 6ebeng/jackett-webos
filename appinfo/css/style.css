@@ -85,6 +85,14 @@ main > section:last-child { margin-bottom: 0; }
 .btn.primary:focus { border-color: #ffffff; }
 .btn.disabled { opacity: 0.4; color: #8c97a3; background: #22272e; }
 .btn.disabled:focus { border-color: #5c6772; transform: scale(1.02); }
+/* Click feedback: a button whose action is in progress pulses amber and stays
+   visible (overriding the dimmed .disabled look) so the tap clearly registered. */
+.btn.loading { opacity: 1; color: #fff3d6; background: #8a6d1f; animation: btnpulse 1s ease-in-out infinite; }
+.btn.loading:focus { border-color: #e0952a; }
+@keyframes btnpulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224, 149, 42, 0); }
+  50%      { box-shadow: 0 0 0 5px rgba(224, 149, 42, 0.55); }
+}
 
 #logwrap { flex: 1; overflow: auto; min-height: 0; padding: 18px; }
 #logs {
