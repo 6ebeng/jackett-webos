@@ -29,9 +29,7 @@
 	var pendingBtnId = null;
 	var clickLockUntil = 0;
 
-	// The footer status line was removed from the UI; keep msg() as a safe no-op
-	// so existing call sites don't need to change (state is shown by the badge and
-	// the Status field instead).
+	// Update the left-footer status tip. Null-safe in case the element is absent.
 	function msg(text) {
 		var el = $('msg');
 		if (el) el.innerHTML = text || '';
@@ -230,6 +228,25 @@
 		var urls = s.accessUrls || [];
 		firstUrl = urls.length ? urls[0] : null;
 		$('urls').textContent = urls.length ? urls.join('    ') : 'http://<tv-ip>:' + (s.port || 9696);
+
+		// Install/launch states are long-running (the ~95 MB download alone can
+		// take a minute), so surface the live progress in the footer tip too.
+		// Without this the footer keeps a stale line and the install looks stuck.
+		var st = s.state || '';
+		var installing = st === 'downloading' || st === 'extracting' || st === 'fetching-deps' || st === 'starting';
+		if (st.indexOf('error') === 0) {
+			msg('Failed: ' + st + ' — open <b>Logs</b> for details, then press <b>Start</b> to retry.');
+		} else if (st === 'stopping') {
+			msg('Stopping Prowlarr…');
+		} else if (st === 'restarting') {
+			msg('Restarting Prowlarr…');
+		} else if (installing && !s.running) {
+			msg('Installing Prowlarr… please wait, this can take a minute.');
+		} else if (s.running) {
+			msg('Running. Manage Prowlarr from any device at the Access URL above.');
+		} else {
+			msg('Press <b>Start</b> to launch Prowlarr.');
+		}
 
 		updateButtons(s);
 	}
