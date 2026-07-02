@@ -92,13 +92,21 @@ notify() {
 autostart_enabled() { [ -f "$AUTOSTART_DST" ]; }
 
 # Persistent autostart is provided by the Homebrew Channel startup-script dir,
-# which only exists and is writable on a ROOTED TV. On a non-rooted (Developer
-# Mode only) TV the service runs unprivileged and cannot write there. Probe it
-# so the UI can enable the Autostart button on rooted TVs and disable it
-# (instead of silently failing) on non-rooted ones.
+# which only exists on a ROOTED TV. On a non-rooted (Developer Mode only) TV
+# that directory does not exist and cannot be created. Detect a rooted TV by
+# the EXISTENCE of the Homebrew Channel dir rather than by write permission:
+# the status query runs in the jailed (non-root) service context and cannot
+# write to the root-owned init.d dir, even though autostart works once the
+# app is installed elevated (rootRequired) via the Homebrew Channel.
 can_autostart() {
     _d=$(dirname "$AUTOSTART_DST")
-    { [ -d "$_d" ] || mkdir -p "$_d" 2>/dev/null; } && [ -w "$_d" ]
+    # Fast path: already writable (elevated/root service context).
+    if { [ -d "$_d" ] || mkdir -p "$_d" 2>/dev/null; } && [ -w "$_d" ]; then
+        return 0
+    fi
+    # Rooted TV: the Homebrew Channel directory tree exists (root-owned). The
+    # autostart script is written with elevated privileges, so allow it.
+    [ -d /var/lib/webosbrew/init.d ] || [ -d /var/lib/webosbrew ]
 }
 
 enable_autostart() {
