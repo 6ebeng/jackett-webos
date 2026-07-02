@@ -237,7 +237,10 @@
 			$('btnUpdate').className = 'btn' + (avail ? ' attention' : '');
 			if (avail) {
 				$('btnUpdate').textContent = 'Update to ' + r.latest;
+				$('updatebadge').textContent = 'Update available (' + r.latest + ')';
 				msg('A new Prowlarr version (<b>' + r.latest + '</b>) is available. Press <b>Update</b> to install.');
+			} else {
+				$('btnUpdate').textContent = 'Update server';
 			}
 		});
 	}
