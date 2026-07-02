@@ -1,6 +1,6 @@
 {
 	"id": "com.prowlarr.app",
-	"version": "1.0.14",
+	"version": "1.0.15",
 	"vendor": "Tishko Rasoul",
 	"type": "web",
 	"main": "index.html",

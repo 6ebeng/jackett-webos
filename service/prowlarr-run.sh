@@ -2,7 +2,9 @@
 #
 # Prowlarr control script for webOS (POSIX sh / busybox compatible).
 #
-# Subcommands: install | start | stop | restart | update | status | logs | datadir
+# Subcommands: install | start | stop | restart | update | status | logs |
+#              datadir | latest | versions | select-version |
+#              enable-autostart | disable-autostart
 #
 # It auto-detects a writable + exec-capable data directory, downloads the
 # matching self-contained Prowlarr build from GitHub on first run, writes a
@@ -13,7 +15,9 @@ set -u
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd)
 PORT=9696
-API_URL="https://api.github.com/repos/Prowlarr/Prowlarr/releases/latest"
+REPO="Prowlarr/Prowlarr"
+API_URL="https://api.github.com/repos/$REPO/releases/latest"
+RELEASES_URL="https://api.github.com/repos/$REPO/releases?per_page=100"
 UA="prowlarr-webos"
 AUTOSTART_SRC="$SCRIPT_DIR/prowlarr-autostart"
 AUTOSTART_DST="/var/lib/webosbrew/init.d/prowlarr"
@@ -73,6 +77,8 @@ PART="$DATA_DIR/prowlarr.tar.gz.part"
 TOTALFILE="$DATA_DIR/total"
 ARCHFILE="$DATA_DIR/arch"
 LATESTFILE="$DATA_DIR/latest"
+VERSIONSFILE="$DATA_DIR/versions"
+WANTVERFILE="$DATA_DIR/.want_version"
 mkdir -p "$DATA_DIR" "$DATA_SUB" "$DATA_DIR/tmp" 2>/dev/null
 
 set_state() { echo "$1" >"$STATEFILE" 2>/dev/null; }
@@ -195,6 +201,27 @@ do_latest() {
     cat "$LATESTFILE" 2>/dev/null
 }
 
+# List the available release tags from GitHub (newest first), one per line, so
+# the UI can offer a manual version picker for downgrades / compatibility fixes.
+# Cached for an hour to keep repeated opens of the picker cheap.
+do_versions() {
+    if [ -f "$VERSIONSFILE" ]; then
+        _age=$(( $(date +%s) - $(date -r "$VERSIONSFILE" +%s 2>/dev/null || echo 0) ))
+        if [ "$_age" -lt 3600 ]; then cat "$VERSIONSFILE"; return 0; fi
+    fi
+    _j="$DATA_DIR/releases.json"
+    if download "$RELEASES_URL" "$_j"; then
+        _tags=$(grep -o '"tag_name"[ ]*:[ ]*"[^"]*"' "$_j" | sed 's/.*"\([^"]*\)"$/\1/')
+        rm -f "$_j" 2>/dev/null
+        if [ -n "$_tags" ]; then
+            printf '%s\n' "$_tags" >"$VERSIONSFILE"
+            cat "$VERSIONSFILE"
+            return 0
+        fi
+    fi
+    cat "$VERSIONSFILE" 2>/dev/null
+}
+
 is_running() {
     if command -v pgrep >/dev/null 2>&1; then
         _p=$(pgrep -f "$BIN" 2>/dev/null | head -n1)
@@ -238,12 +265,22 @@ write_config() {
 EOF
 }
 
+# do_install [version]  -> installs the latest release, or a specific release
+# tag when a version is given (manual downgrade / compatibility pick). A pinned
+# version is fetched from the per-tag release endpoint, which has the same JSON
+# shape as "latest", so the asset/size extraction below is shared.
 do_install() {
     arch=$(detect_arch)
+    _want="${1:-}"
     set_state "downloading"
     json="$DATA_DIR/release.json"
     rm -f "$PART" "$TOTALFILE" 2>/dev/null
-    if ! download "$API_URL" "$json"; then set_state "error:api"; return 1; fi
+    if [ -n "$_want" ]; then
+        _api="https://api.github.com/repos/$REPO/releases/tags/$_want"
+    else
+        _api="$API_URL"
+    fi
+    if ! download "$_api" "$json"; then set_state "error:api"; return 1; fi
 
     # webOS runs a 32-bit ARM (armhf) userspace even on aarch64 kernels, so we
     # use the musl 32-bit ARM build and ship the matching Alpine libs below.
@@ -402,13 +439,16 @@ case "${1:-}" in
     logs)     tail -n "${2:-200}" "$LOG" 2>/dev/null ;;
     datadir)  echo "$DATA_DIR" ;;
     latest)   do_latest ;;
+    versions) do_versions ;;
+    select-version) echo "${2:-}" >"$WANTVERFILE" 2>/dev/null; spawn_bg _install_version ;;
     enable-autostart)  enable_autostart && echo "enabled" || echo "failed" ;;
     disable-autostart) disable_autostart && echo "disabled" || echo "failed" ;;
     _start)   do_start ;;
     _install) do_install ;;
     _restart) do_stop; do_start ;;
     _update)  do_stop; do_install && do_start ;;
-    *) echo "usage: $0 {install|start|stop|restart|update|status|logs|datadir|latest|enable-autostart|disable-autostart}"; exit 1 ;;
+    _install_version) do_stop; do_install "$(cat "$WANTVERFILE" 2>/dev/null)" && do_start ;;
+    *) echo "usage: $0 {install|start|stop|restart|update|status|logs|datadir|latest|versions|select-version|enable-autostart|disable-autostart}"; exit 1 ;;
 esac
 
 
