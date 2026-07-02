@@ -201,12 +201,26 @@
 		}
 		// The Status value shows a coloured chip ONLY for the running/stopped
 		// resting states; transient (busy) and error states stay as plain text.
+		// The chip is keyed off the STATE (not just s.running): during a start the
+		// process may already exist (s.running true) while the state is still
+		// "starting", and we must show "Starting…" then, not the green Running chip.
 		var stEl = $('state');
 		var chip = '';
-		if (s.running) {
+		if (st === 'running' || (s.running && !isBusyState(st) && st.indexOf('error') !== 0)) {
 			stateText = 'Running';
 			chip = 'running';
-		} else if (!isBusyState(st) && st.indexOf('error') !== 0) {
+		} else if (isBusyState(st)) {
+			var busyLabels = {
+				downloading: 'Downloading',
+				extracting: 'Extracting',
+				'fetching-deps': 'Fetching deps',
+				starting: 'Starting',
+				stopping: 'Stopping',
+				restarting: 'Restarting',
+			};
+			// "downloading" keeps its detailed MB/% text computed above.
+			if (st !== 'downloading') stateText = (busyLabels[st] || 'Working') + '…';
+		} else if (st.indexOf('error') !== 0) {
 			stateText = 'Stopped';
 			chip = 'stopped';
 		}
