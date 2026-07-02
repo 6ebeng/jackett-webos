@@ -19,11 +19,10 @@ html, body {
 header {
   display: flex;
   align-items: center;
-  gap: 24px;
   margin-bottom: 32px;
 }
 
-header .logo { width: 64px; height: 64px; border-radius: 12px; }
+header .logo { width: 64px; height: 64px; border-radius: 12px; margin-right: 24px; }
 header h1 { font-size: 44px; font-weight: 700; letter-spacing: 0.5px; }
 
 .badge {
@@ -37,7 +36,9 @@ header h1 { font-size: 44px; font-weight: 700; letter-spacing: 0.5px; }
 .badge.busy    { background: #8a6d1f; color: #fff3d6; }
 .badge.error   { background: #8a2727; color: #ffd6d6; }
 
-main { flex: 1; display: flex; flex-direction: column; gap: 28px; min-height: 0; }
+main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+main > section { margin-bottom: 28px; }
+main > section:last-child { margin-bottom: 0; }
 
 .card {
   background: #1d2228;
@@ -98,7 +99,6 @@ footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
   margin-top: 24px;
   min-height: 32px;
   font-size: 22px;
@@ -136,7 +136,6 @@ footer b { color: #cdd6df; }
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   padding-right: 6px;
 }
 .vempty { font-size: 24px; color: #8c97a3; padding: 24px 4px; }
@@ -147,6 +146,7 @@ footer b { color: #cdd6df; }
   font-size: 26px;
   font-weight: 600;
   padding: 16px 22px;
+  margin-bottom: 10px;
   border-radius: 12px;
   border: 3px solid transparent;
   background: #2a313a;
@@ -155,6 +155,7 @@ footer b { color: #cdd6df; }
   outline: none;
   transition: transform 0.08s ease, border-color 0.08s ease;
 }
+.vitem:last-child { margin-bottom: 0; }
 .vitem.current { background: #22303a; }
 .vitem:focus { border-color: #35c5f0; transform: scale(1.02); }
 .vitem .tag-note {
