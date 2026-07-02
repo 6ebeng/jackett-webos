@@ -243,7 +243,7 @@
 		} else if (st === 'restarting') {
 			msg('Restarting Prowlarr…');
 		} else if (installing && !s.running) {
-			msg('Installing Prowlarr… <b>' + escapeHtml(stateText) + '</b> — please wait, this can take a minute.');
+			msg('Installing Prowlarr… please wait, this can take a minute.');
 		} else if (s.running) {
 			msg('Running. Manage Prowlarr from any device at the Access URL above.');
 		}
