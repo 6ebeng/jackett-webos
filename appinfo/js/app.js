@@ -71,32 +71,48 @@
 		return st === 'downloading' || st === 'extracting' || st === 'fetching-deps' || st === 'starting' || st === 'stopping' || st === 'restarting';
 	}
 
+	// True once the pressed action has fully completed on the server, so the
+	// loading feedback should end. Transitional (busy) states are never "done";
+	// an error state ends the wait (the banner surfaces the failure).
+	function actionDone(btnId, s) {
+		var st = (s && s.state) || '';
+		if (st.indexOf('error') === 0) return true;
+		if (isBusyState(st)) return false;
+		switch (btnId) {
+			case 'btnStart':
+			case 'btnRestart':
+				return !!(s && s.running); // up AND reachable (shell only reports running when ready)
+			case 'btnStop':
+				return !(s && s.running); // fully down
+			default:
+				return true; // update / select-version / autostart: done once no longer busy
+		}
+	}
+
 	// Drive the enabled/disabled + loading state of every action button from the
 	// latest status, so e.g. Start greys out while running and Update greys out
 	// when there is nothing to update.
 	function updateButtons(s) {
 		s = s || lastStatus || {};
 		var running = !!s.running;
-		// "locked" is a short window right after a tap so the pressed button shows
-		// loading instantly. Once it expires the buttons follow the real server
-		// state (running + transitional busy states), so nothing stays greyed if
-		// an action silently fails to change anything.
-		var locked = Date.now() < clickLockUntil;
-		// Release the lock early once the pressed action has visibly taken effect,
-		// so e.g. Stop greys out the moment the server is actually down instead of
-		// staying in the loading state for the rest of the window. Start/Stop are
-		// unambiguous (the server only toggles up/down), so this is always safe.
-		if (locked && pendingBtnId === 'btnStop' && !running) locked = false;
-		if (locked && pendingBtnId === 'btnStart' && running) locked = false;
-		if (!locked) clickLockUntil = 0;
-		var busy = isBusyState(s.state) || locked;
-		if (!busy) pendingBtnId = null;
+		// Keep the pressed button in its loading state until the action has FULLY
+		// completed on the server (stop fully down / start reachable / restart back
+		// up), so the feedback waits for the whole operation instead of ending the
+		// instant the process toggles. clickLockUntil is only a safety cap so a
+		// silently-failed action can never leave a button stuck loading forever.
+		if (pendingBtnId) {
+			if (actionDone(pendingBtnId, s) || Date.now() > clickLockUntil) {
+				pendingBtnId = null;
+				clickLockUntil = 0;
+			}
+		}
+		var busy = isBusyState(s.state) || !!pendingBtnId;
 
 		setBtnDisabled($('btnStart'), running || busy);
 		setBtnDisabled($('btnStop'), !running || busy);
 		setBtnDisabled($('btnRestart'), !running || busy);
 		setBtnDisabled($('btnSelectVersion'), busy);
-		setBtnDisabled($('btnOpen'), !running);
+		setBtnDisabled($('btnOpen'), !running || busy);
 		setBtnDisabled($('btnUpdate'), !updateAvailable || busy);
 		setBtnDisabled($('btnAutostart'), !autostartAvailable || busy);
 
@@ -110,11 +126,12 @@
 		if (busy && pendingBtnId) addClass($(pendingBtnId), 'loading');
 	}
 
-	// Record the pressed button and open a short feedback window so the tap gives
-	// instant loading feedback before the first status poll arrives.
+	// Record the pressed button and open the feedback window so the tap gives
+	// instant loading feedback. The loading state persists until the action
+	// actually completes (see actionDone); the timestamp is just a safety cap.
 	function beginAction(btnId, message) {
 		pendingBtnId = btnId;
-		clickLockUntil = Date.now() + 10000; // 10s bridge until a transitional state shows
+		clickLockUntil = Date.now() + 300000; // 5 min safety cap (first launch downloads ~95 MB)
 		if (message) msg(message);
 		updateButtons(lastStatus);
 		startFastPoll();

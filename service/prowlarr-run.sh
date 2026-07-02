@@ -260,6 +260,22 @@ is_running() {
     kill -0 "$_p" 2>/dev/null
 }
 
+# Probe whether Prowlarr is actually answering HTTP yet (not just spawned), so
+# "running" can mean "the web UI is reachable" rather than "the process exists".
+# Uses the lightweight /ping health endpoint. Falls back to a plain process
+# check when no HTTP client is available.
+port_ready() {
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsS -m 3 -o /dev/null "http://127.0.0.1:$PORT/ping" 2>/dev/null && return 0
+        return 1
+    fi
+    if command -v wget >/dev/null 2>&1; then
+        wget -q -T 3 -O /dev/null "http://127.0.0.1:$PORT/ping" 2>/dev/null && return 0
+        return 1
+    fi
+    is_running
+}
+
 write_config() {
     cfg="$DATA_SUB/config.xml"
     if [ -f "$cfg" ]; then
@@ -386,11 +402,16 @@ do_start() {
         LD_LIBRARY_PATH="$APP_DIR/usr/lib:$APP_DIR/lib" \
         "$APP_DIR/ld-musl.so" "$BIN" -nobrowser -data="$DATA_SUB" >>"$LOG" 2>&1 &
     
-    # Wait for the program to bind (can take a few seconds on slow TVs)
+    # Wait for Prowlarr to actually come up. First the process must appear, then
+    # it must answer HTTP on the port, so "running" means the web UI is genuinely
+    # reachable (not merely that the process spawned). .NET startup on a slow TV
+    # can take 30s+, so allow a generous window.
     i=0
-    while [ $i -lt 15 ]; do
+    while [ $i -lt 45 ]; do
         sleep 1
-        if is_running; then
+        i=$((i + 1))
+        is_running || continue
+        if port_ready; then
             set_state "running"
             _ver=$(cat "$VERFILE" 2>/dev/null)
             if [ -n "$_ver" ]; then
@@ -400,9 +421,17 @@ do_start() {
             fi
             return 0
         fi
-        i=$((i + 1))
     done
-    
+
+    # The process is alive but never answered in time: still report running (it may
+    # just be slow) so the user can open/retry, rather than a false error.
+    if is_running; then
+        set_state "running"
+        _ver=$(cat "$VERFILE" 2>/dev/null)
+        if [ -n "$_ver" ]; then notify "Prowlarr $_ver is running"; else notify "Prowlarr is running"; fi
+        return 0
+    fi
+
     set_state "error:launch"
     return 1
 }
@@ -438,6 +467,10 @@ _kill_proc() {
 }
 
 do_stop() {
+    # Record this process as the worker owning the stop so do_status keeps the
+    # "stopping" state visible (busy) until the kill actually finishes, instead
+    # of a concurrent status poll reconciling it away mid-stop.
+    echo $$ >"$BGPIDFILE" 2>/dev/null
     # Only advertise "stopping" when there is actually something to stop, so a
     # stop issued against an already-stopped server doesn't flash a busy badge.
     if is_running || [ -f "$PIDFILE" ]; then set_state "stopping"; fi
@@ -456,18 +489,20 @@ do_status() {
     if [ "$r" = "false" ] && [ "$st" = "running" ]; then st="stopped"; fi
     # Reconcile stale TRANSITIONAL states. A background install/start/stop can be
     # killed mid-flight (e.g. the TV drops to standby during a version download),
-    # leaving the state file stuck on "downloading"/"starting"/etc forever. If the
-    # worker process that owns the transition is no longer alive, fall back to a
-    # settled state so the badge stops showing "Downloading…" indefinitely.
+    # leaving the state file stuck on "downloading"/"starting"/etc forever. While
+    # the worker owning the transition is still alive, KEEP the transitional state
+    # so the UI shows the action as in-progress until it fully settles (don't
+    # promote "starting" to "running" the instant the process merely spawns). Only
+    # once that worker is gone do we fall back to a settled state.
     case "$st" in
         downloading | extracting | fetching-deps | starting | stopping | restarting)
-            if [ "$r" = "true" ]; then
+            _bg=$(cat "$BGPIDFILE" 2>/dev/null)
+            if [ -n "$_bg" ] && kill -0 "$_bg" 2>/dev/null; then
+                : # worker still running this transition -> keep the transitional state
+            elif [ "$r" = "true" ]; then
                 st="running"
             else
-                _bg=$(cat "$BGPIDFILE" 2>/dev/null)
-                if [ -z "$_bg" ] || ! kill -0 "$_bg" 2>/dev/null; then
-                    st="stopped"
-                fi
+                st="stopped"
             fi
             ;;
     esac
