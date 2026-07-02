@@ -18,6 +18,17 @@ UA="prowlarr-webos"
 AUTOSTART_SRC="$SCRIPT_DIR/prowlarr-autostart"
 AUTOSTART_DST="/var/lib/webosbrew/init.d/prowlarr"
 
+# Locate the app's icon so toast notifications can show the Prowlarr logo. The
+# service lives at .../usr/palm/services/com.prowlarr.app.service and the app
+# icon at .../usr/palm/applications/com.prowlarr.app/icon.png (dev or cryptofs).
+APP_ICON=""
+for _ic in \
+    "$SCRIPT_DIR/../../applications/com.prowlarr.app/icon.png" \
+    /media/developer/apps/usr/palm/applications/com.prowlarr.app/icon.png \
+    /media/cryptofs/apps/usr/palm/applications/com.prowlarr.app/icon.png; do
+    if [ -f "$_ic" ]; then APP_ICON="$_ic"; break; fi
+done
+
 # --------------------------------------------------------------------------
 # Pick a data directory that is both writable and allows execution.
 # Falls back through several candidates so it works on retail, dev and rooted
@@ -65,6 +76,18 @@ LATESTFILE="$DATA_DIR/latest"
 mkdir -p "$DATA_DIR" "$DATA_SUB" "$DATA_DIR/tmp" 2>/dev/null
 
 set_state() { echo "$1" >"$STATEFILE" 2>/dev/null; }
+
+# Show a webOS toast with the Prowlarr logo (when the icon path is known).
+notify() {
+    _msg="$1"
+    if [ -n "$APP_ICON" ]; then
+        luna-send -n 1 -f luna://com.webos.notification/createToast \
+            "{\"message\":\"$_msg\",\"iconUrl\":\"$APP_ICON\"}" >/dev/null 2>&1
+    else
+        luna-send -n 1 -f luna://com.webos.notification/createToast \
+            "{\"message\":\"$_msg\"}" >/dev/null 2>&1
+    fi
+}
 
 autostart_enabled() { [ -f "$AUTOSTART_DST" ]; }
 
@@ -296,7 +319,12 @@ do_start() {
         sleep 1
         if is_running; then
             set_state "running"
-            luna-send -n 1 -f luna://com.webos.notification/createToast '{"message":"Prowlarr is now running!"}' >/dev/null 2>&1
+            _ver=$(cat "$VERFILE" 2>/dev/null)
+            if [ -n "$_ver" ]; then
+                notify "Prowlarr $_ver is running"
+            else
+                notify "Prowlarr is running"
+            fi
             return 0
         fi
         i=$((i + 1))
