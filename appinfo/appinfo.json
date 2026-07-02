@@ -1,6 +1,6 @@
 {
 	"id": "com.prowlarr.app",
-	"version": "1.0.10",
+	"version": "1.0.11",
 	"vendor": "Tishko Rasoul",
 	"type": "web",
 	"main": "index.html",
@@ -14,5 +14,6 @@
 	"disableBackHistoryAPI": true,
 	"handlesRelaunch": false
 }
+
 
 

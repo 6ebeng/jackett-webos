@@ -249,11 +249,26 @@
 		};
 		$('btnLogs').onclick = toggleLogs;
 		$('btnOpen').onclick = function () {
-			if (firstUrl) {
-				window.lunaCall('com.webos.applicationManager', 'launch', { id: 'com.webos.app.browser', params: { target: firstUrl } });
-			} else {
+			if (!firstUrl) {
 				msg('No network address yet — start the server first.');
+				return;
 			}
+			// Open the heavy Prowlarr web UI in the native browser rather than
+			// replacing this app's view (which can exceed the TV app memory
+			// limit and crash on some models). Different webOS versions accept
+			// the URL under different param names, so send them all. If the
+			// browser launch fails for any reason, fall back to navigating
+			// in-app so the button always works on old and new firmwares.
+			window.lunaCall(
+				'com.webos.applicationManager',
+				'launch',
+				{ id: 'com.webos.app.browser', params: { target: firstUrl, url: firstUrl }, target: firstUrl },
+				{
+					onFailure: function () {
+						window.location.href = firstUrl;
+					}
+				}
+			);
 		};
 	}
 
