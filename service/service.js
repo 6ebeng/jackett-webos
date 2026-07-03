@@ -24,7 +24,13 @@ var SCRIPT = path.join(__dirname, 'prowlarr-run.sh');
 // (they never change at runtime). null = not read yet.
 var deviceInfoCache = null;
 
-var service = new Service(SERVICE_ID);
+// Don't stay resident. Instead of holding an activity open forever, use the
+// library's built-in idle timer: the UI polls every ~2s so the service stays
+// alive and responsive while the app is open, then exits ~10s after the app
+// closes - so there's nothing resident to kill at install/reinstall time. Long
+// running work (download/start) already detaches via setsid, so it keeps running
+// after the service exits and the UI picks progress back up on the next poll.
+var service = new Service(SERVICE_ID, null, { idleTimer: 10 });
 
 // Make sure the control script is executable after install.
 try {
@@ -204,20 +210,33 @@ service.register('disableAutostart', function (message) {
 	});
 });
 
-// Keep the service resident. webOS shuts a JS service down as soon as it holds
-// no active "activity" - the launcher logs "no active activities, exiting" and
-// the process can die before (or between) Luna calls are delivered. Holding one
-// activity open from startup keeps the service alive and responsive so the TV UI
-// can reliably call status/start/stop and poll download progress.
-function keepAlive() {
-	try {
-		service.activityManager.create('prowlarr-keepalive', function (activity) {
-			// Intentionally never completed -> the service stays alive.
-		});
-	} catch (e) {
-		// If activity creation is unavailable, fall back to a no-op timer so the
-		// Node event loop at least stays alive within a single launch.
-		setInterval(function () {}, 60000);
+// De-register the Luna name explicitly on every exit path. webOS's socket-close
+// name-release detection is unreliable, so a dying service can leave its name
+// held on ls-hubd - which blocks/confuses a reinstall (the webOS Dev Manager
+// stops the old service first) and can keep a stale jailed instance around. By
+// calling unregister() on the bus handle(s) we free the name immediately. Works
+// for both security models: ACG exposes a single `handle`, the legacy model
+// exposes `privateHandle` + `publicHandle`.
+function deregister() {
+	var handles = [service.handle, service.privateHandle, service.publicHandle];
+	for (var i = 0; i < handles.length; i++) {
+		var h = handles[i];
+		if (h && typeof h.unregister === 'function') {
+			try {
+				h.unregister();
+			} catch (e) {
+				/* ignore */
+			}
+		}
 	}
 }
-keepAlive();
+
+process.on('exit', deregister);
+process.on('SIGTERM', function () {
+	deregister();
+	process.exit(0);
+});
+process.on('SIGINT', function () {
+	deregister();
+	process.exit(0);
+});
