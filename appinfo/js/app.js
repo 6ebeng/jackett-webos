@@ -28,6 +28,9 @@
 	// buttons follow the real server state, so nothing can get stuck greyed.
 	var pendingBtnId = null;
 	var clickLockUntil = 0;
+	// Which way the single Start/Stop toggle is currently driving the server:
+	// true = we asked it to start (want running), false = we asked it to stop.
+	var toggleWant = true;
 
 	// Update the left-footer status tip. Null-safe in case the element is absent.
 	function msg(text) {
@@ -79,11 +82,11 @@
 		if (st.indexOf('error') === 0) return true;
 		if (isBusyState(st)) return false;
 		switch (btnId) {
-			case 'btnStart':
+			case 'btnToggle':
+				// Start wants "running", Stop wants "stopped" (toggleWant records which).
+				return toggleWant ? !!(s && s.running) : !(s && s.running);
 			case 'btnRestart':
 				return !!(s && s.running); // up AND reachable (shell only reports running when ready)
-			case 'btnStop':
-				return !(s && s.running); // fully down
 			default:
 				return true; // update / select-version / autostart: done once no longer busy
 		}
@@ -108,8 +111,15 @@
 		}
 		var busy = isBusyState(s.state) || !!pendingBtnId;
 
-		setBtnDisabled($('btnStart'), running || busy);
-		setBtnDisabled($('btnStop'), !running || busy);
+		// Start/Stop is a single toggle button: greyed only while an action is in
+		// flight; its label + action follow the running state.
+		var tg = $('btnToggle');
+		if (tg) {
+			tg.textContent = running ? 'Stop' : 'Start';
+			if (running) removeClass(tg, 'primary');
+			else addClass(tg, 'primary');
+		}
+		setBtnDisabled(tg, busy);
 		setBtnDisabled($('btnRestart'), !running || busy);
 		setBtnDisabled($('btnSelectVersion'), busy);
 		setBtnDisabled($('btnOpen'), !running || busy);
@@ -121,7 +131,7 @@
 		else removeClass($('btnUpdate'), 'attention');
 
 		// Pulse the pressed button while its action is in flight.
-		var ids = ['btnStart', 'btnStop', 'btnRestart', 'btnUpdate', 'btnAutostart', 'btnSelectVersion'];
+		var ids = ['btnToggle', 'btnRestart', 'btnUpdate', 'btnAutostart', 'btnSelectVersion'];
 		for (var i = 0; i < ids.length; i++) removeClass($(ids[i]), 'loading');
 		if (busy && pendingBtnId) addClass($(pendingBtnId), 'loading');
 	}
@@ -238,12 +248,15 @@
 		// (older service builds) so behaviour is unchanged there.
 		autostartOn = !!s.autostart;
 		autostartAvailable = s.canAutostart !== false;
-		if (autostartAvailable) {
-			$('autostart').textContent = autostartOn ? 'Enabled' : 'Disabled';
-			$('btnAutostart').textContent = 'Autostart: ' + (autostartOn ? 'On' : 'Off');
+		var ab = $('btnAutostart');
+		if (!autostartAvailable) {
+			// Non-rooted (Developer Mode only) TVs can't persist a boot hook.
+			ab.textContent = 'Unavailable';
+			removeClass(ab, 'on');
 		} else {
-			$('autostart').textContent = 'Unavailable (needs rooted TV)';
-			$('btnAutostart').textContent = 'Autostart: N/A';
+			ab.textContent = autostartOn ? 'Enabled' : 'Disabled';
+			if (autostartOn) addClass(ab, 'on');
+			else removeClass(ab, 'on');
 		}
 		var urls = s.accessUrls || [];
 		firstUrl = urls.length ? urls[0] : null;
@@ -517,15 +530,17 @@
 	}
 
 	function wire() {
-		$('btnStart').onclick = function () {
-			if (isDisabled($('btnStart'))) return;
-			beginAction('btnStart', 'Starting… first launch downloads Prowlarr (~95&nbsp;MB), this can take a minute.');
-			svc('start', {}, poll);
-		};
-		$('btnStop').onclick = function () {
-			if (isDisabled($('btnStop'))) return;
-			beginAction('btnStop', 'Stopping…');
-			svc('stop', {}, poll);
+		$('btnToggle').onclick = function () {
+			if (isDisabled($('btnToggle'))) return;
+			if (lastStatus && lastStatus.running) {
+				toggleWant = false;
+				beginAction('btnToggle', 'Stopping…');
+				svc('stop', {}, poll);
+			} else {
+				toggleWant = true;
+				beginAction('btnToggle', 'Starting… first launch downloads Prowlarr (~95&nbsp;MB), this can take a minute.');
+				svc('start', {}, poll);
+			}
 		};
 		$('btnRestart').onclick = function () {
 			if (isDisabled($('btnRestart'))) return;
@@ -539,11 +554,11 @@
 			setTimeout(checkUpdate, 60000);
 		};
 		$('btnAutostart').onclick = function () {
-			if (isDisabled($('btnAutostart'))) return;
 			if (!autostartAvailable) {
 				msg('Autostart needs a rooted TV with the Homebrew Channel. On a non-rooted TV, open the app manually after each reboot.');
 				return;
 			}
+			if (isDisabled($('btnAutostart'))) return;
 			if (autostartOn) {
 				msg('Disabling autostart…');
 				svc('disableAutostart', {}, poll);
@@ -590,7 +605,7 @@
 		// Select version, Autostart, then Start/Stop/Restart/Update/Open/Logs.
 		var btns = Array.prototype.slice.call(document.querySelectorAll('#app .btn'));
 		var idx = 0;
-		var startBtn = $('btnStart');
+		var startBtn = $('btnToggle');
 		for (var bi = 0; bi < btns.length; bi++) {
 			if (btns[bi] === startBtn) { idx = bi; break; }
 		}

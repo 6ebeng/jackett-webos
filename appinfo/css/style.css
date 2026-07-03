@@ -74,8 +74,13 @@ main > section:last-child { margin-bottom: 0; }
   padding: 9px 22px;
   margin: -6px 0;
 }
+/* Autostart toggle: green when Enabled. */
+.btn.row-btn.on { background: #1f7a3d; color: #d6ffe2; }
 
 .actions { display: flex; flex-wrap: nowrap; align-items: stretch; }
+/* Action buttons size to their content and sit left-aligned (not stretched to
+   fill the row). */
+.actions .btn { flex: 0 0 auto; }
 
 .btn {
   flex: 1 1 0;
@@ -111,7 +116,7 @@ main > section:last-child { margin-bottom: 0; }
   50%      { box-shadow: 0 0 0 5px rgba(224, 149, 42, 0.55); }
 }
 
-.logdialog { width: 1200px; }
+.logdialog { width: 1600px; max-width: 92%; }
 #logwrap {
   max-height: 560px;
   overflow: auto;
