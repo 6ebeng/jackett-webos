@@ -21,6 +21,10 @@ RELEASES_URL="https://api.github.com/repos/$REPO/releases?per_page=100"
 UA="prowlarr-webos"
 AUTOSTART_SRC="$SCRIPT_DIR/prowlarr-autostart"
 AUTOSTART_DST="/var/lib/webosbrew/init.d/prowlarr"
+# A separate, always-installed boot hook (distinct from the user-toggled
+# autostart hook above) that RE-ELEVATES our service on boot. See
+# ensure_elevate_hook() for why this exists.
+ELEVATE_HOOK="${AUTOSTART_DST}-elevate"
 
 # Locate the app's icon so toast notifications can show the Prowlarr logo. Prefer
 # the white-background notification tile (icon-notify.png) so the logo stands out
@@ -142,6 +146,36 @@ enable_autostart() {
 disable_autostart() {
     rm -f "$AUTOSTART_DST" 2>/dev/null
     ! autostart_enabled
+}
+
+# The webOS Dev Manager (appInstallService/dev/install) regenerates the service
+# and role files from the ipk every time the app is overwritten, which REVERTS
+# the Homebrew Channel root elevation - so after a manual ipk update the service
+# runs jailed again and the in-app Autostart/root status wrongly shows
+# "unrooted". We cannot self-elevate from inside the jail (no permission to
+# reach the Homebrew Channel service). Instead, while we ARE elevated, drop a
+# tiny boot hook OUTSIDE the app dir (the Homebrew Channel init.d, which SURVIVES
+# app reinstalls) that re-elevates our service on the next boot. So a Dev Manager
+# update self-heals after a reboot. Idempotent + a no-op when not elevated (the
+# jailed context cannot write - or even see - the root-owned init.d dir).
+ensure_elevate_hook() {
+    [ -f "$ELEVATE_HOOK" ] && return 0
+    _hd=$(dirname "$ELEVATE_HOOK")
+    { [ -d "$_hd" ] || mkdir -p "$_hd" 2>/dev/null; } && [ -w "$_hd" ] || return 0
+    cat >"$ELEVATE_HOOK" 2>/dev/null <<'HOOK'
+#!/bin/sh
+# Auto-installed by Prowlarr. Runs at boot (as root) via the Homebrew Channel
+# startup-script feature. Re-elevates the Prowlarr Luna service so its rooted
+# context is restored after the app is updated with the webOS Dev Manager, which
+# resets the service to the jailed launcher. Lives outside the app dir so it
+# survives such reinstalls. Safe to delete if you stop using Prowlarr.
+for e in /media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service \
+         /media/cryptofs/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service; do
+    [ -x "$e" ] && { "$e" com.prowlarr.app.service >/dev/null 2>&1; break; }
+done
+exit 0
+HOOK
+    chmod +x "$ELEVATE_HOOK" 2>/dev/null
 }
 
 # Launch a long-running subcommand in its OWN session so it survives webOS
@@ -486,6 +520,10 @@ do_stop() {
 }
 
 do_status() {
+    # Best-effort: while elevated, make sure the self-healing re-elevation boot
+    # hook is installed (idempotent, no-op when jailed). Doing it here means
+    # simply opening the app - which polls status - keeps the hook in place.
+    ensure_elevate_hook
     # "running" means the server is genuinely there. Prefer the cheap process
     # check (pgrep), but fall back to an HTTP /ping probe so a live server is
     # still reported running even if the process check misses it (e.g. the
