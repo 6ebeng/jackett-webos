@@ -59,6 +59,21 @@ main > section:last-child { margin-bottom: 0; }
 .row .v.chip { display: inline-block; padding: 4px 20px; border-radius: 999px; font-weight: 700; }
 .row .v.chip.running { background: #1f7a3d; color: #d6ffe2; }
 .row .v.chip.stopped { background: #3a3f46; color: #c7ced6; }
+/* A status row that carries its own inline action button (Server Version,
+   Autostart) lays its value + button out in a right-aligned flex line. */
+.row .v.rowline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  max-width: 82%;
+}
+.row .v.rowline > span { margin-right: 16px; white-space: nowrap; }
+.btn.row-btn {
+  flex: 0 0 auto;
+  font-size: 20px;
+  padding: 9px 22px;
+  margin: -6px 0;
+}
 
 .actions { display: flex; flex-wrap: nowrap; align-items: stretch; }
 

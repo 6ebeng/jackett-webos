@@ -23,10 +23,9 @@
             <section class="card">
                 <div class="row"><span class="k">Status</span><span id="state" class="v">checking&hellip;</span></div>
                 <div class="row"><span class="k">App Version</span><span id="appversion" class="v">1.0.16</span></div>
-                <div class="row"><span class="k">Server Version</span><span class="v"><span id="version">&mdash;</span>
-                        <span id="updatebadge" class="pill hidden">Update available</span></span></div>
+                <div class="row"><span class="k">Server Version</span><span class="v rowline"><span id="version">&mdash;</span><span id="updatebadge" class="pill hidden">Update available</span><button id="btnSelectVersion" class="btn row-btn">Select version</button></span></div>
                 <div class="row"><span class="k">Architecture</span><span id="arch" class="v">&mdash;</span></div>
-                <div class="row"><span class="k">Autostart</span><span id="autostart" class="v">&mdash;</span></div>
+                <div class="row"><span class="k">Autostart</span><span class="v rowline"><span id="autostart">&mdash;</span><button id="btnAutostart" class="btn row-btn">Autostart: On</button></span></div>
                 <div class="row"><span class="k">Data directory</span><span id="datadir" class="v">&mdash;</span></div>
                 <div class="row"><span class="k">API key</span><span id="apikey" class="v">&mdash;</span></div>
                 <div class="row"><span class="k">Access URL</span><span id="urls" class="v">&mdash;</span></div>
@@ -37,8 +36,6 @@
                 <button id="btnStop" class="btn disabled">Stop</button>
                 <button id="btnRestart" class="btn disabled">Restart</button>
                 <button id="btnUpdate" class="btn disabled">Update server</button>
-                <button id="btnSelectVersion" class="btn">Select version</button>
-                <button id="btnAutostart" class="btn">Autostart: On</button>
                 <button id="btnOpen" class="btn disabled">Open Web UI</button>
                 <button id="btnLogs" class="btn">Logs</button>
             </section>

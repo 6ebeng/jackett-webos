@@ -577,9 +577,16 @@
 	}
 
 	function setupNav() {
-		var btns = Array.prototype.slice.call(document.querySelectorAll('.actions .btn'));
+		// Include the inline row buttons (Select version, Autostart) alongside the
+		// action bar so every button stays reachable with the remote. DOM order:
+		// Select version, Autostart, then Start/Stop/Restart/Update/Open/Logs.
+		var btns = Array.prototype.slice.call(document.querySelectorAll('#app .btn'));
 		var idx = 0;
-		if (btns.length) btns[0].focus();
+		var startBtn = $('btnStart');
+		for (var bi = 0; bi < btns.length; bi++) {
+			if (btns[bi] === startBtn) { idx = bi; break; }
+		}
+		if (btns.length) btns[idx].focus();
 
 		document.addEventListener('keydown', function (e) {
 			var k = e.keyCode;
@@ -611,16 +618,16 @@
 				return;
 			}
 
-			if (k === 37) {
+			if (k === 37 || k === 38) {
 				idx = (idx + btns.length - 1) % btns.length;
 				btns[idx].focus();
 				e.preventDefault();
-			} // left
-			else if (k === 39) {
+			} // left / up -> previous
+			else if (k === 39 || k === 40) {
 				idx = (idx + 1) % btns.length;
 				btns[idx].focus();
 				e.preventDefault();
-			} // right
+			} // right / down -> next
 			else if (k === 461 || k === 27) {
 				if (logsVisible) {
 					toggleLogs();
