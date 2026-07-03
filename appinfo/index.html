@@ -39,10 +39,6 @@
                 <button id="btnOpen" class="btn disabled">Open Web UI</button>
                 <button id="btnLogs" class="btn">Logs</button>
             </section>
-
-            <section id="logwrap" class="card hidden">
-                <pre id="logs"></pre>
-            </section>
         </main>
 
         <footer>
@@ -59,6 +55,16 @@
             <div id="vlist" class="vlist">Loading&hellip;</div>
             <div class="dialog-actions">
                 <button id="btnVCancel" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="logmodal" class="overlay hidden">
+        <div class="dialog logdialog">
+            <div class="dialog-title">Prowlarr logs</div>
+            <div id="logwrap" class="logbox"><pre id="logs">Loading&hellip;</pre></div>
+            <div class="dialog-actions">
+                <button id="btnLogsClose" class="btn">Close</button>
             </div>
         </div>
     </div>

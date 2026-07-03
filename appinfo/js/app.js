@@ -394,12 +394,19 @@
 
 	function toggleLogs() {
 		logsVisible = !logsVisible;
-		$('logwrap').className = 'card' + (logsVisible ? '' : ' hidden');
+		$('logmodal').className = 'overlay' + (logsVisible ? '' : ' hidden');
 		if (logsVisible) {
 			$('logs').textContent = 'Loading…';
+			$('btnLogsClose').focus();
 			svc('getLogs', { lines: LOG_LINES }, function (r) {
+				if (!logsVisible) return;
 				$('logs').textContent = r && r.log ? r.log : '(log is empty)';
+				var w = $('logwrap');
+				w.scrollTop = w.scrollHeight;
 			});
+		} else {
+			var lb = $('btnLogs');
+			if (lb) lb.focus();
 		}
 	}
 
@@ -546,6 +553,7 @@
 			}
 		};
 		$('btnLogs').onclick = toggleLogs;
+		$('btnLogsClose').onclick = toggleLogs;
 		$('btnSelectVersion').onclick = function () {
 			if (isDisabled($('btnSelectVersion'))) return;
 			openVersionPicker();
@@ -613,6 +621,23 @@
 					e.preventDefault();
 				} else if (k === 461 || k === 27 || k === 8) {
 					closeVersionPicker();
+					e.preventDefault();
+				}
+				return;
+			}
+
+			// While the logs modal is open it owns navigation: up/down scroll the
+			// log view, back (or OK on Close) closes it.
+			if (logsVisible) {
+				var lw = $('logwrap');
+				if (k === 38) {
+					lw.scrollTop -= 80;
+					e.preventDefault();
+				} else if (k === 40) {
+					lw.scrollTop += 80;
+					e.preventDefault();
+				} else if (k === 461 || k === 27 || k === 8) {
+					toggleLogs();
 					e.preventDefault();
 				}
 				return;

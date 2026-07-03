@@ -111,7 +111,18 @@ main > section:last-child { margin-bottom: 0; }
   50%      { box-shadow: 0 0 0 5px rgba(224, 149, 42, 0.55); }
 }
 
-#logwrap { flex: 1; overflow: auto; min-height: 0; padding: 18px; }
+.logdialog { width: 1200px; }
+#logwrap {
+  max-height: 560px;
+  overflow: auto;
+  padding: 18px 20px;
+  background: #14181d;
+  border: 1px solid #2a313a;
+  border-radius: 12px;
+}
+#logwrap::-webkit-scrollbar { width: 6px; }
+#logwrap::-webkit-scrollbar-track { background: transparent; }
+#logwrap::-webkit-scrollbar-thumb { background: #3a4650; border-radius: 999px; }
 #logs {
   font-family: "Courier New", monospace;
   font-size: 22px;
