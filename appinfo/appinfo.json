@@ -1,6 +1,6 @@
 {
 	"id": "com.jackett.app",
-	"version": "1.0.16",
+	"version": "0.1.0",
 	"vendor": "Tishko Rasoul",
 	"type": "web",
 	"main": "index.html",

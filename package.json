@@ -1,6 +1,6 @@
 {
 	"name": "jackett-webos",
-	"version": "1.0.8",
+	"version": "0.1.0",
 	"description": "Jackett indexer manager packaged as a webOS TV app (.ipk)",
 	"private": true,
 	"scripts": {

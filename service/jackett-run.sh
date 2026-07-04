@@ -300,11 +300,11 @@ is_running() {
 # check when no HTTP client is available.
 port_ready() {
     if command -v curl >/dev/null 2>&1; then
-        curl -fsS -m 3 -o /dev/null "http://127.0.0.1:$PORT/ping" 2>/dev/null && return 0
+        curl -fsS -m 3 -o /dev/null "http://127.0.0.1:$PORT/UI/Dashboard" 2>/dev/null && return 0
         return 1
     fi
     if command -v wget >/dev/null 2>&1; then
-        wget -q -T 3 -O /dev/null "http://127.0.0.1:$PORT/ping" 2>/dev/null && return 0
+        wget -q -T 3 -O /dev/null "http://127.0.0.1:$PORT/UI/Dashboard" 2>/dev/null && return 0
         return 1
     fi
     is_running
@@ -426,8 +426,12 @@ do_start() {
     # left in it; setsid puts Jackett in a new session that survives on its own.
     # Fall back to nohup on firmwares without setsid.
     if command -v setsid >/dev/null 2>&1; then _detach="setsid"; else _detach="nohup"; fi
+    # Jackett explicitly constructs the en-US CultureInfo at startup, which throws
+    # under globalization-invariant mode unless we also allow non-predefined
+    # cultures (they resolve to invariant, so no ICU library is needed).
     $_detach env -i \
         DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 \
+        DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY=0 \
         DOTNET_CLI_TELEMETRY_OPTOUT=1 \
         DOTNET_gcServer=0 \
         COMPlus_gcServer=0 \
