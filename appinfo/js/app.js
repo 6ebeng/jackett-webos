@@ -102,11 +102,17 @@
 		}
 
 		// Start/Stop is a single toggle button: greyed only while an action is in
-		// flight; its label + action follow the running state.
+		// flight; its label + action follow the running state. While a toggle
+		// action is in flight, freeze the label to the intent (Stop stays "Stop"
+		// until fully stopped, Start stays "Start" until fully running) so it does
+		// not flip mid-feedback when a transient "stopping"/"starting" state reports
+		// running already toggled.
 		var tg = $('btnToggle');
 		if (tg) {
-			tg.textContent = running ? 'Stop' : 'Start';
-			if (running) removeClass(tg, 'primary');
+			var toggleInFlight = busy && pendingBtnId === 'btnToggle' && pendingWant !== null;
+			var showRunning = toggleInFlight ? !pendingWant : running;
+			tg.textContent = showRunning ? 'Stop' : 'Start';
+			if (showRunning) removeClass(tg, 'primary');
 			else addClass(tg, 'primary');
 		}
 		setBtnDisabled(tg, busy);
