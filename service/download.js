@@ -1,6 +1,6 @@
 /*
  * Streaming HTTPS/HTTP downloader with redirect support.
- * Used as a last-resort fallback by prowlarr-run.sh when neither curl nor wget
+ * Used as a last-resort fallback by Jackett-run.sh when neither curl nor wget
  * is available on the TV. Uses only Node core modules.
  *
  *   node download.js <url> <destination>
@@ -32,7 +32,7 @@ function get(u, redirects, cb) {
 		port: parsed.port,
 		path: parsed.path,
 		headers: {
-			'User-Agent': 'prowlarr-webos',
+			'User-Agent': 'Jackett-webos',
 			Accept: '*/*',
 		},
 	};

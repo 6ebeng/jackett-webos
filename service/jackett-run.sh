@@ -1,53 +1,53 @@
 #!/bin/sh
 #
-# Prowlarr control script for webOS (POSIX sh / busybox compatible).
+# Jackett control script for webOS (POSIX sh / busybox compatible).
 #
 # Subcommands: install | start | stop | restart | update | status | logs |
 #              datadir | latest | versions | select-version |
 #              enable-autostart | disable-autostart
 #
 # It auto-detects a writable + exec-capable data directory, downloads the
-# matching self-contained Prowlarr build from GitHub on first run, writes a
-# minimal config.xml (bind to all interfaces, port 9696) and supervises the
+# matching self-contained Jackett build from GitHub on first run, writes a
+# minimal config.xml (bind to all interfaces, port 9117) and supervises the
 # process via a pid file.
 #
 set -u
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" 2>/dev/null && pwd)
-PORT=9696
-REPO="Prowlarr/Prowlarr"
+PORT=9117
+REPO="Jackett/Jackett"
 API_URL="https://api.github.com/repos/$REPO/releases/latest"
 RELEASES_URL="https://api.github.com/repos/$REPO/releases?per_page=100"
-UA="prowlarr-webos"
-AUTOSTART_SRC="$SCRIPT_DIR/prowlarr-autostart"
-AUTOSTART_DST="/var/lib/webosbrew/init.d/prowlarr"
+UA="Jackett-webos"
+AUTOSTART_SRC="$SCRIPT_DIR/Jackett-autostart"
+AUTOSTART_DST="/var/lib/webosbrew/init.d/Jackett"
 # A separate, always-installed boot hook (distinct from the user-toggled
 # autostart hook above) that RE-ELEVATES our service on boot. See
 # ensure_elevate_hook() for why this exists.
 ELEVATE_HOOK="${AUTOSTART_DST}-elevate"
 
-# Locate the app's icon so toast notifications can show the Prowlarr logo. Prefer
+# Locate the app's icon so toast notifications can show the Jackett logo. Prefer
 # the white-background notification tile (icon-notify.png) so the logo stands out
 # on the dark webOS toast; fall back to the standard app icon.
 APP_ICON=""
 for _ic in \
-    "$SCRIPT_DIR/../../applications/com.prowlarr.app/icon-notify.png" \
-    /media/developer/apps/usr/palm/applications/com.prowlarr.app/icon-notify.png \
-    /media/cryptofs/apps/usr/palm/applications/com.prowlarr.app/icon-notify.png \
-    "$SCRIPT_DIR/../../applications/com.prowlarr.app/icon.png" \
-    /media/developer/apps/usr/palm/applications/com.prowlarr.app/icon.png \
-    /media/cryptofs/apps/usr/palm/applications/com.prowlarr.app/icon.png; do
+    "$SCRIPT_DIR/../../applications/com.jackett.app/icon-notify.png" \
+    /media/developer/apps/usr/palm/applications/com.jackett.app/icon-notify.png \
+    /media/cryptofs/apps/usr/palm/applications/com.jackett.app/icon-notify.png \
+    "$SCRIPT_DIR/../../applications/com.jackett.app/icon.png" \
+    /media/developer/apps/usr/palm/applications/com.jackett.app/icon.png \
+    /media/cryptofs/apps/usr/palm/applications/com.jackett.app/icon.png; do
     if [ -f "$_ic" ]; then APP_ICON="$_ic"; break; fi
 done
 
 # --------------------------------------------------------------------------
 # Pick a data directory that is both writable and allows execution.
 # Falls back through several candidates so it works on retail, dev and rooted
-# firmwares. Override with the PROWLARR_DATA environment variable.
+# firmwares. Override with the Jackett_DATA environment variable.
 # --------------------------------------------------------------------------
 pick_datadir() {
-    if [ -n "${PROWLARR_DATA:-}" ]; then
-        if mkdir -p "$PROWLARR_DATA" 2>/dev/null; then echo "$PROWLARR_DATA"; return 0; fi
+    if [ -n "${Jackett_DATA:-}" ]; then
+        if mkdir -p "$Jackett_DATA" 2>/dev/null; then echo "$Jackett_DATA"; return 0; fi
     fi
     # Prefer a data dir on the SAME media partition the app was installed to, so
     # the config/database live beside the app whether it came from the Content
@@ -55,7 +55,7 @@ pick_datadir() {
     # (/media/developer/apps/...). SCRIPT_DIR is .../apps/usr/palm/services/... so
     # the leading /media/<root> is the install partition.
     _root=$(printf '%s' "$SCRIPT_DIR" | sed -n 's,^\(/media/[^/]*\)/apps/.*,\1,p')
-    for d in ${_root:+"$_root/prowlarr"} /media/developer/prowlarr /media/cryptofs/prowlarr /home/root/prowlarr /media/internal/.prowlarr /tmp/prowlarr; do
+    for d in ${_root:+"$_root/Jackett"} /media/developer/Jackett /media/cryptofs/Jackett /home/root/Jackett /media/internal/.Jackett /tmp/Jackett; do
         # Fast path: a dir validated on an earlier run keeps an .exec_ok marker.
         # Exec-capability is a static mount property, so while the marker (and the
         # dir) still exist and the dir is writable we skip the write/chmod/exec
@@ -74,20 +74,20 @@ pick_datadir() {
         fi
         rm -f "$d/.w" "$d/.x" 2>/dev/null
     done
-    echo /tmp/prowlarr
+    echo /tmp/Jackett
 }
 
 DATA_DIR=$(pick_datadir)
 APP_DIR="$DATA_DIR/app"
 DATA_SUB="$DATA_DIR/data"
-LOG="$DATA_DIR/prowlarr.log"
-PIDFILE="$DATA_DIR/prowlarr.pid"
+LOG="$DATA_DIR/Jackett.log"
+PIDFILE="$DATA_DIR/Jackett.pid"
 STATEFILE="$DATA_DIR/state"
 BGPIDFILE="$DATA_DIR/bg.pid"
 VERFILE="$DATA_DIR/version"
-BIN="$APP_DIR/Prowlarr"
-TGZ="$DATA_DIR/prowlarr.tar.gz"
-PART="$DATA_DIR/prowlarr.tar.gz.part"
+BIN="$APP_DIR/jackett"
+TGZ="$DATA_DIR/Jackett.tar.gz"
+PART="$DATA_DIR/Jackett.tar.gz.part"
 TOTALFILE="$DATA_DIR/total"
 ARCHFILE="$DATA_DIR/arch"
 LATESTFILE="$DATA_DIR/latest"
@@ -97,7 +97,7 @@ mkdir -p "$DATA_DIR" "$DATA_SUB" "$DATA_DIR/tmp" 2>/dev/null
 
 set_state() { echo "$1" >"$STATEFILE" 2>/dev/null; }
 
-# Show a webOS toast with the Prowlarr logo (when the icon path is known).
+# Show a webOS toast with the Jackett logo (when the icon path is known).
 notify() {
     _msg="$1"
     if [ -n "$APP_ICON" ]; then
@@ -164,14 +164,14 @@ ensure_elevate_hook() {
     { [ -d "$_hd" ] || mkdir -p "$_hd" 2>/dev/null; } && [ -w "$_hd" ] || return 0
     cat >"$ELEVATE_HOOK" 2>/dev/null <<'HOOK'
 #!/bin/sh
-# Auto-installed by Prowlarr. Runs at boot (as root) via the Homebrew Channel
-# startup-script feature. Re-elevates the Prowlarr Luna service so its rooted
+# Auto-installed by Jackett. Runs at boot (as root) via the Homebrew Channel
+# startup-script feature. Re-elevates the Jackett Luna service so its rooted
 # context is restored after the app is updated with the webOS Dev Manager, which
 # resets the service to the jailed launcher. Lives outside the app dir so it
-# survives such reinstalls. Safe to delete if you stop using Prowlarr.
+# survives such reinstalls. Safe to delete if you stop using Jackett.
 for e in /media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service \
          /media/cryptofs/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service; do
-    [ -x "$e" ] && { "$e" com.prowlarr.app.service >/dev/null 2>&1; break; }
+    [ -x "$e" ] && { "$e" com.jackett.app.service >/dev/null 2>&1; break; }
 done
 exit 0
 HOOK
@@ -294,7 +294,7 @@ is_running() {
     kill -0 "$_p" 2>/dev/null
 }
 
-# Probe whether Prowlarr is actually answering HTTP yet (not just spawned), so
+# Probe whether Jackett is actually answering HTTP yet (not just spawned), so
 # "running" can mean "the web UI is reachable" rather than "the process exists".
 # Uses the lightweight /ping health endpoint. Falls back to a plain process
 # check when no HTTP client is available.
@@ -311,29 +311,23 @@ port_ready() {
 }
 
 write_config() {
-    cfg="$DATA_SUB/config.xml"
+    cfg="$DATA_SUB/ServerConfig.json"
     if [ -f "$cfg" ]; then
-        # Ensure API key is fixed at 1 on existing installs
-        if grep -q "<ApiKey>" "$cfg"; then
-            sed -i 's#<ApiKey>[^<]*</ApiKey>#<ApiKey>1</ApiKey>#' "$cfg"
+        if grep -q '"APIKey"' "$cfg"; then
+            sed -i 's/"APIKey": *"[^"]*"/"APIKey": "1"/' "$cfg"
         else
-            sed -i 's#</Config>#  <ApiKey>1</ApiKey>\n</Config>#' "$cfg"
+            sed -i 's/{/{ "APIKey": "1", /' "$cfg"
         fi
         return 0
     fi
     cat >"$cfg" <<EOF
-<Config>
-  <BindAddress>*</BindAddress>
-  <Port>$PORT</Port>
-  <UrlBase></UrlBase>
-  <ApiKey>1</ApiKey>
-  <EnableSsl>False</EnableSsl>
-  <LaunchBrowser>False</LaunchBrowser>
-  <AnalyticsEnabled>False</AnalyticsEnabled>
-  <Branch>master</Branch>
-  <UpdateMechanism>BuiltIn</UpdateMechanism>
-  <InstanceName>Prowlarr (webOS)</InstanceName>
-</Config>
+{
+  "Port": $PORT,
+  "AllowExternal": true,
+  "APIKey": "1",
+  "UpdateDisabled": true,
+  "InstanceName": "Jackett (webOS)"
+}
 EOF
 }
 
@@ -356,14 +350,14 @@ do_install() {
 
     # webOS runs a 32-bit ARM (armhf) userspace even on aarch64 kernels, so we
     # use the musl 32-bit ARM build and ship the matching Alpine libs below.
-    url=$(grep -o '"https://[^"]*linux-musl-core-arm.tar.gz"' "$json" | head -n1 | tr -d '"')
+    url=$(grep -o '"https://[^"]*LinuxMuslARM32.tar.gz"' "$json" | head -n1 | tr -d '"')
     ver=$(grep -o '"tag_name"[ ]*:[ ]*"[^"]*"' "$json" | head -n1 | sed 's/.*"\([^"]*\)"$/\1/')
     if [ -z "$url" ]; then set_state "error:asset"; return 1; fi
 
     # Best-effort total download size (for the progress bar); ignored if missing.
     # The release JSON is minified, so isolate the substring up to this asset's
     # download URL and take the last "size" before it.
-    prefix=$(grep -o '.*linux-musl-core-arm.tar.gz' "$json" 2>/dev/null)
+    prefix=$(grep -o '.*LinuxMuslARM32.tar.gz' "$json" 2>/dev/null)
     total=$(printf '%s' "$prefix" | grep -o '"size"[ ]*:[ ]*[0-9][0-9]*' | tail -n1 | grep -o '[0-9][0-9]*' | tail -n1)
     [ -n "$total" ] && echo "$total" >"$TOTALFILE"
 
@@ -381,8 +375,8 @@ do_install() {
     rm -f "$TGZ" "$PART" 2>/dev/null
 
     rm -rf "$APP_DIR"
-    if [ -d "$APP_DIR.tmp/Prowlarr" ]; then
-        mv "$APP_DIR.tmp/Prowlarr" "$APP_DIR"
+    if [ -d "$APP_DIR.tmp/Jackett" ]; then
+        mv "$APP_DIR.tmp/Jackett" "$APP_DIR"
     else
         mv "$APP_DIR.tmp" "$APP_DIR"
     fi
@@ -426,10 +420,10 @@ do_start() {
     write_config
     set_state "starting"
     cd "$APP_DIR" 2>/dev/null || { set_state "error:chdir"; return 1; }
-    # Launch Prowlarr in its OWN session so it is fully detached from the
+    # Launch Jackett in its OWN session so it is fully detached from the
     # short-lived app service that spawned it. On webOS 9 the app/service session
     # (cgroup) can be torn down when the app is closed, which would reap a child
-    # left in it; setsid puts Prowlarr in a new session that survives on its own.
+    # left in it; setsid puts Jackett in a new session that survives on its own.
     # Fall back to nohup on firmwares without setsid.
     if command -v setsid >/dev/null 2>&1; then _detach="setsid"; else _detach="nohup"; fi
     $_detach env -i \
@@ -440,9 +434,9 @@ do_start() {
         PATH=/usr/bin:/bin \
         TMPDIR="$DATA_DIR/tmp" HOME="$DATA_DIR" XDG_CONFIG_HOME="$DATA_DIR" \
         LD_LIBRARY_PATH="$APP_DIR/usr/lib:$APP_DIR/lib" \
-        "$APP_DIR/ld-musl.so" "$BIN" -nobrowser -data="$DATA_SUB" >>"$LOG" 2>&1 &
+        "$APP_DIR/ld-musl.so" "$BIN" -x -d "$DATA_SUB" >>"$LOG" 2>&1 &
     
-    # Wait for Prowlarr to actually come up. First the process must appear, then
+    # Wait for Jackett to actually come up. First the process must appear, then
     # it must answer HTTP on the port, so "running" means the web UI is genuinely
     # reachable (not merely that the process spawned). .NET startup on a slow TV
     # can take 30s+, so allow a generous window.
@@ -455,9 +449,9 @@ do_start() {
             set_state "running"
             _ver=$(cat "$VERFILE" 2>/dev/null)
             if [ -n "$_ver" ]; then
-                notify "Prowlarr $_ver is running"
+                notify "Jackett $_ver is running"
             else
-                notify "Prowlarr is running"
+                notify "Jackett is running"
             fi
             return 0
         fi
@@ -468,7 +462,7 @@ do_start() {
     if is_running; then
         set_state "running"
         _ver=$(cat "$VERFILE" 2>/dev/null)
-        if [ -n "$_ver" ]; then notify "Prowlarr $_ver is running"; else notify "Prowlarr is running"; fi
+        if [ -n "$_ver" ]; then notify "Jackett $_ver is running"; else notify "Jackett is running"; fi
         return 0
     fi
 
@@ -476,7 +470,7 @@ do_start() {
     return 1
 }
 
-# Kill the running Prowlarr process (no state changes) and wait for the port to
+# Kill the running Jackett process (no state changes) and wait for the port to
 # be released. Shared by do_stop and _restart so restart can show a distinct
 # "restarting" state instead of momentarily reporting "stopping".
 _kill_proc() {
@@ -494,7 +488,7 @@ _kill_proc() {
         rm -f "$PIDFILE"
     fi
     if command -v pkill >/dev/null 2>&1; then pkill -f "$BIN" 2>/dev/null; fi
-    # Wait until the binary is fully gone so the port (9696) is released before
+    # Wait until the binary is fully gone so the port (9117) is released before
     # any subsequent start, otherwise restart hits "address already in use".
     i=0
     while is_running; do
@@ -528,7 +522,7 @@ do_status() {
     # check (pgrep), but fall back to an HTTP /ping probe so a live server is
     # still reported running even if the process check misses it (e.g. the
     # process cmdline was rewritten, or a jailed service context can't see the
-    # pid). This prevents showing "stopped" for a Prowlarr that is actually up.
+    # pid). This prevents showing "stopped" for a Jackett that is actually up.
     if is_running; then r=true; elif port_ready; then r=true; else r=false; fi
     if [ -x "$BIN" ]; then ins=true; else ins=false; fi
     st=$(cat "$STATEFILE" 2>/dev/null); [ -z "$st" ] && st="idle"

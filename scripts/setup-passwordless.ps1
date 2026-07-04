@@ -2,7 +2,7 @@ param(
   [string]$TVHost = '10.5.50.13',
   [string]$User = 'root',
   [string]$Password = 'alpine',
-  [string]$KeyPath = "$env:USERPROFILE\.ssh\prowlarr_tv"
+  [string]$KeyPath = "$env:USERPROFILE\.ssh\Jackett_tv"
 )
 $ErrorActionPreference = 'Stop'
 
@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 $kd = Split-Path $KeyPath
 if (-not (Test-Path $kd)) { New-Item -ItemType Directory $kd | Out-Null }
 if (-not (Test-Path $KeyPath)) {
-  ssh-keygen -t ed25519 -f $KeyPath -N '""' -C 'prowlarr-webos' | Out-Null
+  ssh-keygen -t ed25519 -f $KeyPath -N '""' -C 'Jackett-webos' | Out-Null
 }
 $pub = (Get-Content "$KeyPath.pub" -Raw).Trim()
 

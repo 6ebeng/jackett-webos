@@ -7,7 +7,7 @@
 # with a password; if ares refuses, use scripts/deploy.ps1 (pure SSH) instead.
 
 param(
-    [string]$Name     = 'prowlarrtv',
+    [string]$Name     = 'jacketttv',
     [string]$TVHost   = '10.5.50.13',
     [string]$User     = 'root',
     [string]$Password = 'alpine',
@@ -29,4 +29,4 @@ $info = "{'host':'$TVHost','port':$SshPort,'username':'$User','password':'$Passw
 Write-Host ''
 Write-Host "Registered '$Name'. Install with:"
 Write-Host "  node_modules\.bin\ares-install -d $Name dist\<package>.ipk"
-Write-Host "  node_modules\.bin\ares-launch  -d $Name com.prowlarr.app"
+Write-Host "  node_modules\.bin\ares-launch  -d $Name com.jackett.app"

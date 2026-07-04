@@ -1,4 +1,4 @@
-# Deploys the Prowlarr webOS app to a rooted LG TV over SSH.
+# Deploys the Jackett webOS app to a rooted LG TV over SSH.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1
 #   powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1 -Autostart
@@ -12,15 +12,15 @@ param(
     [string]$User = 'root',
     [string]$Password = 'alpine',
     [int]   $SshPort = 22,
-    [string]$KeyPath = "$env:USERPROFILE\.ssh\prowlarr_tv",
+    [string]$KeyPath = "$env:USERPROFILE\.ssh\jackett_tv",
     [switch]$NoBuild,
     [switch]$Autostart
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-$AppId = 'com.prowlarr.app'
-$SvcId = 'com.prowlarr.app.service'
+$AppId = 'com.jackett.app'
+$SvcId = 'com.jackett.app.service'
 
 if (-not $NoBuild) {
     & (Join-Path $PSScriptRoot 'build.ps1')
@@ -63,19 +63,19 @@ function Invoke-TV($cmd) {
 }
 
 # 1. Copy the package to the TV.
-Copy-ToTV $ipk.FullName '/tmp/prowlarr.ipk'
+Copy-ToTV $ipk.FullName '/tmp/Jackett.ipk'
 
 # 2-4. Install + elevate (+ optional autostart) in ONE SSH session (one password
 #       prompt). The remote script is sent base64-encoded to avoid quoting issues.
 Write-Host 'Installing package and elevating service on TV...'
 
 $remote = @'
-APPID=com.prowlarr.app
-SVCID=com.prowlarr.app.service
+APPID=com.jackett.app
+SVCID=com.jackett.app.service
 echo "=== ipk on TV ==="
-ls -la /tmp/prowlarr.ipk 2>/dev/null || echo "MISSING /tmp/prowlarr.ipk (copy failed)"
+ls -la /tmp/Jackett.ipk 2>/dev/null || echo "MISSING /tmp/Jackett.ipk (copy failed)"
 echo "=== installing (streaming until complete) ==="
-luna-send -i -w 180000 luna://com.webos.appInstallService/dev/install "{\"id\":\"$APPID\",\"ipkUrl\":\"/tmp/prowlarr.ipk\",\"subscribe\":true}" >/tmp/prowlarr-install.log 2>&1 &
+luna-send -i -w 180000 luna://com.webos.appInstallService/dev/install "{\"id\":\"$APPID\",\"ipkUrl\":\"/tmp/Jackett.ipk\",\"subscribe\":true}" >/tmp/jackett-install.log 2>&1 &
 LS=$!
 i=0
 APPDIR=""
@@ -92,7 +92,7 @@ if [ -n "$APPDIR" ]; then
   echo "INSTALL OK -> $APPDIR"
 else
   echo "INSTALL FAILED - last install messages:"
-  tail -n 15 /tmp/prowlarr-install.log 2>/dev/null
+  tail -n 15 /tmp/jackett-install.log 2>/dev/null
 fi
 ELEV=""
 for p in /media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service /media/cryptofs/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service; do
@@ -111,8 +111,8 @@ if ($Autostart) {
     $remote += @'
 
 mkdir -p /var/lib/webosbrew/init.d
-for d in /media/developer/apps/usr/palm/services/com.prowlarr.app.service /media/cryptofs/apps/usr/palm/services/com.prowlarr.app.service; do
-  if [ -f "$d/prowlarr-autostart" ]; then cp "$d/prowlarr-autostart" /var/lib/webosbrew/init.d/prowlarr; chmod +x /var/lib/webosbrew/init.d/prowlarr; echo "autostart installed"; break; fi
+for d in /media/developer/apps/usr/palm/services/com.jackett.app.service /media/cryptofs/apps/usr/palm/services/com.jackett.app.service; do
+  if [ -f "$d/jackett-autostart" ]; then cp "$d/jackett-autostart" /var/lib/webosbrew/init.d/Jackett; chmod +x /var/lib/webosbrew/init.d/Jackett; echo "autostart installed"; break; fi
 done
 '@
 }
@@ -123,5 +123,5 @@ Invoke-TV "echo $b64 | base64 -d | sh"
 
 Write-Host ''
 Write-Host 'Done.' -ForegroundColor Green
-Write-Host 'Open "Prowlarr" on the TV and press Start (first launch downloads Prowlarr).'
-Write-Host "Then manage it from any device at: http://${TVHost}:9696"
+Write-Host 'Open "Jackett" on the TV and press Start (first launch downloads Jackett).'
+Write-Host "Then manage it from any device at: http://${TVHost}:9117"

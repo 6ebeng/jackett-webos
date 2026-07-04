@@ -1,7 +1,7 @@
 (function () {
 	'use strict';
 
-	var SERVICE = 'com.prowlarr.app.service';
+	var SERVICE = 'com.jackett.app.service';
 	var POLL_MS = 2000;
 	var LOG_LINES = 300;
 
@@ -260,7 +260,7 @@
 		}
 		var urls = s.accessUrls || [];
 		firstUrl = urls.length ? urls[0] : null;
-		$('urls').textContent = urls.length ? urls.join('    ') : 'http://<tv-ip>:' + (s.port || 9696);
+		$('urls').textContent = urls.length ? urls.join('    ') : 'http://<tv-ip>:' + (s.port || 9117);
 
 		// Install/launch states are long-running (the ~95 MB download alone can
 		// take a minute), so surface the live progress in the footer tip too.
@@ -270,15 +270,15 @@
 		if (st.indexOf('error') === 0) {
 			msg('Failed: ' + st + ' — open <b>Logs</b> for details, then press <b>Start</b> to retry.');
 		} else if (st === 'stopping') {
-			msg('Stopping Prowlarr…');
+			msg('Stopping Jackett…');
 		} else if (st === 'restarting') {
-			msg('Restarting Prowlarr…');
+			msg('Restarting Jackett…');
 		} else if (installing && !s.running) {
-			msg('Installing Prowlarr… please wait, this can take a minute.');
+			msg('Installing Jackett… please wait, this can take a minute.');
 		} else if (s.running) {
-			msg('Running. Manage Prowlarr from any device at the Access URL above.');
+			msg('Running. Manage Jackett from any device at the Access URL above.');
 		} else {
-			msg('Press <b>Start</b> to launch Prowlarr.');
+			msg('Press <b>Start</b> to launch Jackett.');
 		}
 
 		updateButtons(s);
@@ -326,7 +326,7 @@
 
 	// webOS keeps a web app resident in the background after Home is pressed, and
 	// its WebView does NOT throttle timers the way desktop browsers do. Left as-is
-	// we would keep forking a fresh `prowlarr-run.sh status` (plus a log fetch) on
+	// we would keep forking a fresh `Jackett-run.sh status` (plus a log fetch) on
 	// the TV every POLL_MS forever - a steady CPU/IO drain that stops the system
 	// app-launcher from suspending us cleanly and makes the NEXT app the user opens
 	// hang on launch. So suspend every background timer while hidden and resume
@@ -397,7 +397,7 @@
 			if (avail) {
 				$('btnUpdate').textContent = 'Update to ' + r.latest;
 				$('updatebadge').textContent = 'Update available (' + r.latest + ')';
-				msg('A new Prowlarr version (<b>' + r.latest + '</b>) is available. Press <b>Update</b> to install.');
+				msg('A new Jackett version (<b>' + r.latest + '</b>) is available. Press <b>Update</b> to install.');
 			} else {
 				$('btnUpdate').textContent = 'Update server';
 			}
@@ -520,10 +520,10 @@
 	function chooseVersion(tag) {
 		if (!tag) return;
 		if (tag === currentVersion) {
-			msg('Prowlarr <b>' + escapeHtml(tag) + '</b> is already installed.');
+			msg('Jackett <b>' + escapeHtml(tag) + '</b> is already installed.');
 			return;
 		}
-		beginAction('btnSelectVersion', 'Installing Prowlarr <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.');
+		beginAction('btnSelectVersion', 'Installing Jackett <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.');
 		svc('selectVersion', { version: tag }, poll);
 		closeVersionPicker();
 		setTimeout(checkUpdate, 60000);
@@ -538,7 +538,7 @@
 				svc('stop', {}, poll);
 			} else {
 				toggleWant = true;
-				beginAction('btnToggle', 'Starting… first launch downloads Prowlarr (~95&nbsp;MB), this can take a minute.');
+				beginAction('btnToggle', 'Starting… first launch downloads Jackett (~95&nbsp;MB), this can take a minute.');
 				svc('start', {}, poll);
 			}
 		};
@@ -549,7 +549,7 @@
 		};
 		$('btnUpdate').onclick = function () {
 			if (isDisabled($('btnUpdate'))) return;
-			beginAction('btnUpdate', 'Updating to the latest Prowlarr release…');
+			beginAction('btnUpdate', 'Updating to the latest Jackett release…');
 			svc('update', {}, poll);
 			setTimeout(checkUpdate, 60000);
 		};
@@ -580,7 +580,7 @@
 				msg('No network address yet — start the server first.');
 				return;
 			}
-			// Open the heavy Prowlarr web UI in the native browser rather than
+			// Open the heavy Jackett web UI in the native browser rather than
 			// replacing this app's view (which can exceed the TV app memory
 			// limit and crash on some models). Different webOS versions accept
 			// the URL under different param names, so send them all. If the

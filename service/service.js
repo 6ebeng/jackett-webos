@@ -1,7 +1,7 @@
 /*
- * Prowlarr control service for webOS.
+ * Jackett control service for webOS.
  *
- * This is a thin Luna-bus wrapper around prowlarr-run.sh, which does the heavy
+ * This is a thin Luna-bus wrapper around jackett-run.sh, which does the heavy
  * lifting (architecture detection, download, extraction, process supervision).
  * Long-running actions (start / install / update) are launched detached and the
  * front-end polls "status" to follow progress, so Luna calls never block.
@@ -16,9 +16,9 @@ var fs = require('fs');
 var os = require('os');
 var child = require('child_process');
 
-var SERVICE_ID = 'com.prowlarr.app.service';
-var PORT = 9696;
-var SCRIPT = path.join(__dirname, 'prowlarr-run.sh');
+var SERVICE_ID = 'com.jackett.app.service';
+var PORT = 9117;
+var SCRIPT = path.join(__dirname, 'jackett-run.sh');
 
 // Firmware + webOS version are read once from the nyx os_info file and cached
 // (they never change at runtime). null = not read yet.
@@ -74,18 +74,18 @@ function readStatus(cb) {
 			/* keep default */
 		}
 		data.accessUrls = accessUrls();
-		// Read the configured API key from config.xml
+		// Read the configured API key from ServerConfig.json
 		try {
-			var base = data.dataDir || '/media/developer/prowlarr';
-			var cfg = fs.readFileSync(path.join(base, 'data', 'config.xml'), 'utf8');
-			var m = cfg.match(/<ApiKey>([^<]*)<\/ApiKey>/);
+			var base = data.dataDir || '/media/developer/Jackett';
+			var cfg = fs.readFileSync(path.join(base, 'data', 'ServerConfig.json'), 'utf8');
+			var cfgObj = JSON.parse(cfg); var m = [null, cfgObj.APIKey];
 			data.apiKey = m ? m[1] : '';
 		} catch (e) {
 			data.apiKey = '';
 		}
 		// Check if the autostart init script exists
 		try {
-			data.autostart = fs.existsSync('/var/lib/webosbrew/init.d/prowlarr');
+			data.autostart = fs.existsSync('/var/lib/webosbrew/init.d/jackett');
 		} catch (e) {
 			data.autostart = false;
 		}
@@ -159,7 +159,7 @@ service.register('checkUpdate', function (message) {
 	});
 });
 
-// List the Prowlarr releases available upstream (newest first) so the UI can
+// List the Jackett releases available upstream (newest first) so the UI can
 // offer a manual version picker for downgrades / compatibility fixes. Each line
 // from the control script is "<tag>|<prerelease>"; we parse it into objects so
 // the UI can flag pre-release and latest-stable builds.
@@ -181,7 +181,7 @@ service.register('listVersions', function (message) {
 	});
 });
 
-// Install a specific Prowlarr release (manual downgrade / version pin). The
+// Install a specific Jackett release (manual downgrade / version pin). The
 // control script self-backgrounds the download+restart, so we ack immediately
 // and the front-end follows progress by polling "status".
 service.register('selectVersion', function (message) {

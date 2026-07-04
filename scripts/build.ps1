@@ -1,4 +1,4 @@
-# Builds the Prowlarr webOS .ipk package.
+# Builds the Jackett webOS .ipk package.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts/build.ps1
 #
@@ -43,7 +43,7 @@ try {
     }
 
     # 4. Normalise shell scripts to LF so they run on the TV.
-    foreach ($f in @('service\prowlarr-run.sh', 'service\prowlarr-autostart')) {
+    foreach ($f in @('service\jackett-run.sh', 'service\jackett-autostart')) {
         $p = Join-Path $root $f
         if (Test-Path $p) {
             $text = [System.IO.File]::ReadAllText($p) -replace "`r`n", "`n"

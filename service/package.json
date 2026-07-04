@@ -1,7 +1,7 @@
 {
-	"name": "com.prowlarr.app.service",
+	"name": "com.jackett.app.service",
 	"version": "1.0.0",
-	"description": "Prowlarr control service for webOS",
+	"description": "Jackett control service for webOS",
 	"main": "service.js",
 	"private": true,
 	"dependencies": {

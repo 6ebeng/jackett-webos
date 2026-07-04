@@ -1,0 +1,15 @@
+{
+	"id": "com.jackett.app",
+	"version": "1.0.16",
+	"type": "web",
+	"title": "Jackett",
+	"appDescription": "Jackett is an indexer manager/proxy built on the popular *arr base stack. This port brings Jackett directly to your webOS device.",
+	"iconUrl": "https://raw.githubusercontent.com/6ebeng/jackett-webos/main/appinfo/icon.png",
+	"sourceUrl": "https://github.com/6ebeng/jackett-webos",
+	"rootRequired": true,
+	"ipkUrl": "https://github.com/6ebeng/jackett-webos/releases/download/v1.0.16/com.jackett.app_1.0.16_all.ipk",
+	"ipkHash": {
+		"sha256": "7204fa12e80a6a68c2d534e1404d3db3c41de6e64059afe121ff51a927c32cc5"
+	},
+	"ipkSize": 71498
+}

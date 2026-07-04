@@ -1,18 +1,18 @@
 {
-	"id": "com.prowlarr.app.service",
-	"description": "Prowlarr control service - manages the Prowlarr server process",
+	"id": "com.jackett.app.service",
+	"description": "Jackett control service - manages the Jackett server process",
 	"services": [
 		{
-			"name": "com.prowlarr.app.service",
-			"description": "Downloads, starts, stops and monitors the Prowlarr server",
+			"name": "com.jackett.app.service",
+			"description": "Downloads, starts, stops and monitors the Jackett server",
 			"commands": [
-				{ "name": "status", "description": "Return current Prowlarr status" },
-				{ "name": "start", "description": "Start Prowlarr (downloads it on first run)" },
-				{ "name": "stop", "description": "Stop Prowlarr" },
-				{ "name": "restart", "description": "Restart Prowlarr" },
-				{ "name": "install", "description": "Download / re-download the latest Prowlarr" },
-				{ "name": "update", "description": "Update Prowlarr to the latest release" },
-				{ "name": "getLogs", "description": "Return the tail of the Prowlarr log" }
+				{ "name": "status", "description": "Return current Jackett status" },
+				{ "name": "start", "description": "Start Jackett (downloads it on first run)" },
+				{ "name": "stop", "description": "Stop Jackett" },
+				{ "name": "restart", "description": "Restart Jackett" },
+				{ "name": "install", "description": "Download / re-download the latest Jackett" },
+				{ "name": "update", "description": "Update Jackett to the latest release" },
+				{ "name": "getLogs", "description": "Return the tail of the Jackett log" }
 			]
 		}
 	]

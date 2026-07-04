@@ -1,7 +1,7 @@
 {
-	"name": "prowlarr-webos",
+	"name": "jackett-webos",
 	"version": "1.0.8",
-	"description": "Prowlarr indexer manager packaged as a webOS TV app (.ipk)",
+	"description": "Jackett indexer manager packaged as a webOS TV app (.ipk)",
 	"private": true,
 	"scripts": {
 		"icons": "powershell -ExecutionPolicy Bypass -File scripts/make-icons.ps1",
