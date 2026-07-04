@@ -8,7 +8,7 @@
 	"appDescription": "Jackett indexer manager running inside your TV",
 	"icon": "icon.png",
 	"largeIcon": "largeIcon.png",
-	"iconColor": "#35c5f0",
+	"iconColor": "#ffffff",
 	"bgColor": "#14181d",
 	"transparent": true,
 	"disableBackHistoryAPI": true,
