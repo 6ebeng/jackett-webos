@@ -19,7 +19,7 @@ REPO="Jackett/Jackett"
 API_URL="https://api.github.com/repos/$REPO/releases/latest"
 RELEASES_URL="https://api.github.com/repos/$REPO/releases?per_page=100"
 UA="Jackett-webos"
-AUTOSTART_SRC="$SCRIPT_DIR/Jackett-autostart"
+AUTOSTART_SRC="$SCRIPT_DIR/jackett-autostart"
 AUTOSTART_DST="/var/lib/webosbrew/init.d/Jackett"
 # A separate, always-installed boot hook (distinct from the user-toggled
 # autostart hook above) that RE-ELEVATES our service on boot. See

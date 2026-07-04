@@ -83,12 +83,11 @@ function readStatus(cb) {
 		} catch (e) {
 			data.apiKey = '';
 		}
-		// Check if the autostart init script exists
-		try {
-			data.autostart = fs.existsSync('/var/lib/webosbrew/init.d/jackett');
-		} catch (e) {
-			data.autostart = false;
-		}
+		// The control script already reports "autostart"/"canAutostart" in its
+		// status JSON (it knows the correct init.d path and runs elevated), so we
+		// trust those values here rather than re-probing from the jailed Node
+		// context, which cannot reliably see /var/lib/webosbrew.
+		if (typeof data.autostart === 'undefined') data.autostart = false;
 		// Firmware (webos_manufacturing_version) + webOS version (webos_release),
 		// read once from the nyx os_info file and cached.
 		if (deviceInfoCache === null) {

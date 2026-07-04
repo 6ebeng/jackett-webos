@@ -560,10 +560,10 @@
 			}
 			if (isDisabled($('btnAutostart'))) return;
 			if (autostartOn) {
-				msg('Disabling autostart…');
+				beginAction('btnAutostart', 'Disabling autostart…');
 				svc('disableAutostart', {}, poll);
 			} else {
-				msg('Enabling autostart…');
+				beginAction('btnAutostart', 'Enabling autostart…');
 				svc('enableAutostart', {}, poll);
 			}
 		};
