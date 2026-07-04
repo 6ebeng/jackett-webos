@@ -24,13 +24,14 @@
 	var lastStatus = {};
 	// Action feedback: which button was pressed and a short lock window during
 	// which the action buttons stay in a "loading" state, giving instant tap
-	// feedback before the first status poll arrives. After the lock expires the
+	// feedback before the first status poll arrives. Once the lock expires the
 	// buttons follow the real server state, so nothing can get stuck greyed.
 	var pendingBtnId = null;
 	var clickLockUntil = 0;
-	// Which way the single Start/Stop toggle is currently driving the server:
-	// true = we asked it to start (want running), false = we asked it to stop.
-	var toggleWant = true;
+	// Expected server-running outcome of the pending action (true after Start/
+	// Restart/Update/Select, false after Stop, null = don't care) so the loading
+	// pulse can end the instant that outcome actually shows.
+	var pendingWant = null;
 
 	// Update the left-footer status tip. Null-safe in case the element is absent.
 	function msg(text) {
@@ -74,42 +75,31 @@
 		return st === 'downloading' || st === 'extracting' || st === 'fetching-deps' || st === 'starting' || st === 'stopping' || st === 'restarting';
 	}
 
-	// True once the pressed action has fully completed on the server, so the
-	// loading feedback should end. Transitional (busy) states are never "done";
-	// an error state ends the wait (the banner surfaces the failure).
-	function actionDone(btnId, s) {
-		var st = (s && s.state) || '';
-		if (st.indexOf('error') === 0) return true;
-		if (isBusyState(st)) return false;
-		switch (btnId) {
-			case 'btnToggle':
-				// Start wants "running", Stop wants "stopped" (toggleWant records which).
-				return toggleWant ? !!(s && s.running) : !(s && s.running);
-			case 'btnRestart':
-				return !!(s && s.running); // up AND reachable (shell only reports running when ready)
-			default:
-				return true; // update / select-version / autostart: done once no longer busy
-		}
-	}
-
 	// Drive the enabled/disabled + loading state of every action button from the
 	// latest status, so e.g. Start greys out while running and Update greys out
-	// when there is nothing to update.
+	// when there is nothing to update. The pressed button pulses while its action
+	// is in flight.
 	function updateButtons(s) {
 		s = s || lastStatus || {};
 		var running = !!s.running;
-		// Keep the pressed button in its loading state until the action has FULLY
-		// completed on the server (stop fully down / start reachable / restart back
-		// up), so the feedback waits for the whole operation instead of ending the
-		// instant the process toggles. clickLockUntil is only a safety cap so a
-		// silently-failed action can never leave a button stuck loading forever.
-		if (pendingBtnId) {
-			if (actionDone(pendingBtnId, s) || Date.now() > clickLockUntil) {
-				pendingBtnId = null;
-				clickLockUntil = 0;
-			}
+		// "locked" is a brief window right after a press so the pressed button shows
+		// loading instantly. Once it expires the buttons follow the real server
+		// state, so nothing stays greyed if an action changed nothing.
+		var locked = Date.now() < clickLockUntil;
+		// End the bridge the instant the action's outcome actually shows (server
+		// running/stopped as expected, or an error) so the loading pulse stops
+		// immediately instead of running the full lock window.
+		if (locked) {
+			var settled = (s.state || '').indexOf('error') === 0;
+			if (!settled && pendingWant !== null && !isBusyState(s.state) && running === pendingWant) settled = true;
+			if (settled) locked = false;
 		}
-		var busy = isBusyState(s.state) || !!pendingBtnId;
+		if (!locked) clickLockUntil = 0;
+		var busy = isBusyState(s.state) || locked;
+		if (!busy) {
+			pendingBtnId = null;
+			pendingWant = null;
+		}
 
 		// Start/Stop is a single toggle button: greyed only while an action is in
 		// flight; its label + action follow the running state.
@@ -136,12 +126,14 @@
 		if (busy && pendingBtnId) addClass($(pendingBtnId), 'loading');
 	}
 
-	// Record the pressed button and open the feedback window so the tap gives
-	// instant loading feedback. The loading state persists until the action
-	// actually completes (see actionDone); the timestamp is just a safety cap.
-	function beginAction(btnId, message) {
+	// Record the pressed button and open a short feedback window so the press
+	// shows a loading pulse instantly, before the first status poll arrives. The
+	// busy server state (starting/downloading/…) then keeps the pulse going for
+	// the whole operation; wantRunning ends it the moment the outcome shows.
+	function beginAction(btnId, message, wantRunning) {
 		pendingBtnId = btnId;
-		clickLockUntil = Date.now() + 300000; // 5 min safety cap (first launch downloads ~95 MB)
+		pendingWant = typeof wantRunning === 'boolean' ? wantRunning : null;
+		clickLockUntil = Date.now() + 10000;
 		if (message) msg(message);
 		updateButtons(lastStatus);
 		startFastPoll();
@@ -523,7 +515,7 @@
 			msg('Jackett <b>' + escapeHtml(tag) + '</b> is already installed.');
 			return;
 		}
-		beginAction('btnSelectVersion', 'Installing Jackett <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.');
+		beginAction('btnSelectVersion', 'Installing Jackett <b>' + escapeHtml(tag) + '</b>… this downloads ~95&nbsp;MB and can take a minute.', true);
 		svc('selectVersion', { version: tag }, poll);
 		closeVersionPicker();
 		setTimeout(checkUpdate, 60000);
@@ -533,23 +525,21 @@
 		$('btnToggle').onclick = function () {
 			if (isDisabled($('btnToggle'))) return;
 			if (lastStatus && lastStatus.running) {
-				toggleWant = false;
-				beginAction('btnToggle', 'Stopping…');
+				beginAction('btnToggle', 'Stopping…', false);
 				svc('stop', {}, poll);
 			} else {
-				toggleWant = true;
-				beginAction('btnToggle', 'Starting… first launch downloads Jackett (~95&nbsp;MB), this can take a minute.');
+				beginAction('btnToggle', 'Starting… first launch downloads Jackett (~95&nbsp;MB), this can take a minute.', true);
 				svc('start', {}, poll);
 			}
 		};
 		$('btnRestart').onclick = function () {
 			if (isDisabled($('btnRestart'))) return;
-			beginAction('btnRestart', 'Restarting…');
+			beginAction('btnRestart', 'Restarting…', true);
 			svc('restart', {}, poll);
 		};
 		$('btnUpdate').onclick = function () {
 			if (isDisabled($('btnUpdate'))) return;
-			beginAction('btnUpdate', 'Updating to the latest Jackett release…');
+			beginAction('btnUpdate', 'Updating to the latest Jackett release…', true);
 			svc('update', {}, poll);
 			setTimeout(checkUpdate, 60000);
 		};
