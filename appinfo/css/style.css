@@ -121,19 +121,19 @@ main > section:last-child { margin-bottom: 0; }
   max-height: 560px;
   overflow: auto;
   padding: 18px 20px;
-  background: #14181d;
-  border: 1px solid #2a313a;
+  background: #ffffff;
+  border: 1px solid #c9d2db;
   border-radius: 12px;
 }
 #logwrap::-webkit-scrollbar { width: 6px; }
 #logwrap::-webkit-scrollbar-track { background: transparent; }
-#logwrap::-webkit-scrollbar-thumb { background: #3a4650; border-radius: 999px; }
+#logwrap::-webkit-scrollbar-thumb { background: #c1ccd6; border-radius: 999px; }
 #logs {
   font-family: "Courier New", monospace;
   font-size: 22px;
   line-height: 1.4;
   white-space: pre-wrap;
-  color: #b9c4cf;
+  color: #1b2127;
 }
 
 footer {
